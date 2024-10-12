@@ -10,7 +10,11 @@ authors = [
 
 requires-python = ">=3.11"
 readme = "README.md"
-license = {text = "MIT"}
+
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+]
 
 dependencies = [
     "awscli>=1.32.92",
@@ -41,9 +45,20 @@ dev = [
     "types-python-dateutil",
     "types-requests",
 ]
+docs = [
+    "furo",
+    "matplotlib",
+    "myst-parser",
+    "sphinx>=5.0,<6.0",
+    "sphinx-copybutton",
+    "sphinx-github-style",
+    "sphinxext-opengraph",
+    ]
 
 [project.urls]
 Repository = "https://github.com/reichlab/cladetime.git"
+Documentation = "https://cladetime.readthedocs.io/"
+Issues = "https://github.com/reichlab/cladetime/issues"
 
 [project.entry-points."console_scripts"]
 assign_clades = "cladetime.assign_clades:main"
