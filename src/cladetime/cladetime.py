@@ -25,7 +25,7 @@ class CladeTime:
     Parameters
     ----------
     sequence_as_of : datetime.datetime | str | None
-        Sets the versions of Nextstrain SAR-CoV-2 genome sequence
+        Sets the versions of Nextstrain SARS-CoV-2 genome sequence
         and sequence metadata files that will be used by
         CladeTime properties and methods. Can be a datetime object or a
         string in YYYY-MM-DD format, both of which will be treated as
