@@ -66,7 +66,10 @@ recent data available from Nextstrain.
 
 To access sequence metadata at a specific point in time, pass a date string
 in the format 'YYYY-MM-DD' to the CladeTime constructor. Alternatively, you can pass
-a Python datetime object. Both will be treated as UTC dates/times.
+a Python datetime object. Both will be treated as UTC dates/times. If a date string
+is specified, the datetime will be set to 00:00:00 hours:minutes:seconds on that
+date, meaning that the CladeTime object will retrieve the sequence metadata that
+was available at the start of that day.
 
 .. code-block:: python
 
