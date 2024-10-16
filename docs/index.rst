@@ -1,4 +1,4 @@
-:og:description: Cladetime is a Python interface for accessing Sars-Cov-2 sequence and clade data provided by Nextstrain.
+:og:description: Cladetime is a Python interface for accessing SARS-CoV-2 sequence and clade data provided by Nextstrain.
 
 ===============
  Cladetime
