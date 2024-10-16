@@ -4,7 +4,7 @@
  Cladetime
 ===============
 
-Cladetime is a Python interface for accessing `Nextstrain <https://nextstrain.org/>`_ Sars-Cov-2 sequence and clade data.
+Cladetime is a Python interface for accessing `Nextstrain <https://nextstrain.org/>`_ SARS-CoV-2 sequence and clade data.
 
 .. toctree::
    :titlesonly:
