@@ -15,7 +15,7 @@ logger = structlog.get_logger()
 
 
 class CladeTime:
-    """Interface for Nextstrain Sars-CoV-2 genome sequences and clades.
+    """Interface for Nextstrain SARS-CoV-2 genome sequences and clades.
 
     The CladeTime class is instantiated with two optional arguments that
     specify the point in time at which to access genome sequences/metadata
