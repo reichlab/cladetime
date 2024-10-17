@@ -15,51 +15,45 @@ logger = structlog.get_logger()
 
 
 class CladeTime:
-    """
-    Wrapper around Nextstrain/Nextclade tooling to generate Sars-CoV-2 genome clade assignments
-    and aggregations at a specific point in time. CladeTime operates on Genbank sequences.
+    """Interface for Nextstrain SARS-CoV-2 genome sequences and clades.
+
+    The CladeTime class is instantiated with two optional arguments that
+    specify the point in time at which to access genome sequences/metadata
+    as well as the reference tree used for clade assignment. CladeTime
+    interacts with GenBank-based data provided by the Nextstrain project.
+
+    Parameters
+    ----------
+    sequence_as_of : datetime.datetime | str | None
+        Sets the versions of Nextstrain SARS-CoV-2 genome sequence
+        and sequence metadata files that will be used by
+        CladeTime properties and methods. Can be a datetime object or a
+        string in YYYY-MM-DD format, both of which will be treated as
+        UTC. The default value is the current time.
+    tree_as_of : datetime.datetime | str | None
+        Sets the version of the Nextstrain reference tree that will be
+        used by CladeTime. Can be a datetime object or a string in
+        YYYY-MM-DD format, both of which will be treated as UTC.
+        The default value is :any:`sequence_as_of<sequence_as_of>`
 
     Attributes
     ----------
-    sequence_as_of : datetime
-        Use the NextStrain sequences and sequence metadata that were available
-        as of this date and time (UTC).
-    ncov_metadata : dict
-        Metadata for the Nextstrain ncov pipeline that generated the sequence and
-        sequence metadata that correspond to the sequence_as_of date.
-    metadata_metadata : pl.LazyFrame
-        A Polars lazyframe reference to url_sequence_metadata.
-    tree_as_of : datetime
-        Use the NextStrain reference tree that was available as of this
-        date and time (UTC).
-        Can be a datetime object, a string in the format
-        "YYYY-MM-DD", or None (which defaults to the current date and time).
-    url_ncov_metadata: str
-        S3 URL to the Nextstrain ncov metadata file (.json)
+    url_ncov_metadata : str
+        S3 URL to metadata from the Nextstrain pipeline run that
+        generated the sequence clade assignments in
+        :any:`url_sequence_metadata<url_sequence_metadata>`
     url_sequence : str
         S3 URL to the Nextstrain Sars-CoV-2 sequence file (zst-compressed
-        .fasta) that was available at the sequence_as_of.
+        .fasta) that was current at the date specified in
+        :any:`sequence_as_of<sequence_as_of>`
     url_sequence_metadata : str
         S3 URL to the Nextstrain Sars-CoV-2 sequence metadata file
-        (zst-compressed tsv) that was available at the sequence_as_of.
+        (zst-compressed tsv) that was current at the date specified in
+        :any:`sequence_as_of<sequence_as_of>`
     """
 
     def __init__(self, sequence_as_of=None, tree_as_of=None):
-        """
-        Parameters
-        ----------
-        sequence_as_of : datetime | str | None, default = now()
-            Use the NextStrain sequences and sequence metadata that were available
-            as of this date. Can be a datetime object, a string in the format
-            "YYYY-MM-DD", or None (which defaults to the current date and time).
-            CladeTime treats all dates and times as UTC.
-        tree_as_of : datetime | str | None, default = now()
-            Use the NextStrain reference tree that was available as of this date.
-            Can be a datetime object, a string in the format
-            "YYYY-MM-DD", or None (which defaults to the sequence_as_of date).
-            CladeTime treats all dates and times as UTC.
-        """
-
+        """CladeTime constructor."""
         self._config = self._get_config()
         self.sequence_as_of = sequence_as_of
         self.tree_as_of = tree_as_of
@@ -83,11 +77,16 @@ class CladeTime:
 
     @property
     def sequence_as_of(self) -> datetime:
+        """
+        datetime.datetime : The date and time (UTC) used to retrieve NextStrain sequences
+        and sequence metadata. :any:`url_sequence<url_sequence>` and
+        :any:`url_sequence_metadata<url_sequence_metadata>` link to
+        Nextstrain files that were current as of this date.
+        """
         return self._sequence_as_of
 
     @sequence_as_of.setter
     def sequence_as_of(self, date) -> None:
-        """Set the sequence_as_of attribute."""
         sequence_as_of = self._validate_as_of_date(date)
         utc_now = datetime.now(timezone.utc)
         if sequence_as_of > utc_now:
@@ -101,11 +100,16 @@ class CladeTime:
 
     @property
     def tree_as_of(self) -> datetime:
+        """
+        datetime.datetime : The date and time (UTC) used to retrieve the NextStrain
+        reference tree. :any:`get_reference_tree<get_reference_tree>`
+        uses this date to get the reference tree that was current as
+        of this date.
+        """
         return self._tree_as_of
 
     @tree_as_of.setter
     def tree_as_of(self, date) -> None:
-        """Set the tree_as_of attribute."""
         if date is None:
             tree_as_of = self.sequence_as_of
         else:
@@ -126,7 +130,12 @@ class CladeTime:
 
     @ncov_metadata.getter
     def ncov_metadata(self) -> dict:
-        """Get the ncov_metadata attribute."""
+        """
+        dict : Metadata for the reference tree that was used for SARS-CoV-2
+        clade assignments as of :any:`tree_as_of<tree_as_of>`.
+        This property will be empty for dates before 2024-08-01, when
+        Nextstrain began publishing ncov pipeline metadata.
+        """
         if self.url_ncov_metadata:
             metadata = _get_ncov_metadata(self.url_ncov_metadata)
             return metadata
@@ -140,7 +149,10 @@ class CladeTime:
 
     @sequence_metadata.getter
     def sequence_metadata(self) -> pl.LazyFrame:
-        """Get the sequence_metadata attribute."""
+        """
+        :class:`polars.LazyFrame` : A Polars LazyFrame that references
+        :any:`url_sequence_metadata<url_sequence_metadata>`
+        """
         if self.url_sequence_metadata:
             sequence_metadata = get_covid_genome_metadata(metadata_url=self.url_sequence_metadata)
             return sequence_metadata
@@ -182,3 +194,17 @@ class CladeTime:
             raise CladeTimeInvalidDateError(f"Date must be after May 1, 2023: {as_of_date}")
 
         return as_of_date
+
+    def get_reference_tree(self) -> dict:
+        """Return a reference tree used for SARS-CoV-2 clade assignments
+
+        Retrieves the reference tree that was current as of
+        :any:`tree_as_of<tree_as_of>`.
+
+        This method is not yet implemented.
+
+        Returns
+        -------
+        dict
+        """
+        return {self.tree_as_of: "not implemented"}
