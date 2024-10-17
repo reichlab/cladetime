@@ -27,10 +27,16 @@ extensions = [
     "sphinx_copybutton",
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
+    "sphinx.ext.viewcode",
     "sphinx_github_style",
     "sphinxext.opengraph",
     "sphinx.ext.napoleon",
+    "sphinx_toolbox.github",
+    "sphinx_toolbox.sidebar_links",
 ]
+
+github_username = "reichlab"
+github_repository = "cladetime"
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),

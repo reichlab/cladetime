@@ -14,6 +14,9 @@ Cladetime is a Python interface for accessing `Nextstrain <https://nextstrain.or
    user-guide
    reference/index
 
+.. sidebar-links::
+   :github:
+
 Installation
 ------------
 

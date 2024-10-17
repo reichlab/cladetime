@@ -53,6 +53,7 @@ docs = [
     "sphinx-copybutton",
     "sphinx-github-style",
     "sphinxext-opengraph",
+    "sphinx_toolbox",
     ]
 
 [project.urls]
