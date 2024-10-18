@@ -147,7 +147,11 @@ def _get_ncov_metadata(
         )
         return {}
 
-    return response.json()
+    metadata = response.json()
+    if metadata.get("nextclade_dataset_name", "").lower() == "sars-cov-2":
+        metadata["nextclade_dataset_name_full"] = "nextstrain/sars-cov-2/wuhan-hu-1/orfs"
+
+    return metadata
 
 
 def filter_covid_genome_metadata(metadata: pl.LazyFrame, cols: list = []) -> pl.LazyFrame:
