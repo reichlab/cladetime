@@ -192,17 +192,3 @@ class CladeTime:
             raise CladeTimeInvalidDateError(f"Date must be after May 1, 2023: {as_of_date}")
 
         return as_of_date
-
-    def get_reference_tree(self) -> dict:
-        """Return a reference tree used for SARS-CoV-2 clade assignments
-
-        Retrieves the reference tree that was current as of
-        :any:`tree_as_of<tree_as_of>`.
-
-        This method is not yet implemented.
-
-        Returns
-        -------
-        dict
-        """
-        return {self.tree_as_of: "not implemented"}
