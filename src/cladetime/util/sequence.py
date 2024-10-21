@@ -137,6 +137,7 @@ def _get_ncov_metadata(
         session = _get_session(retry=False)
 
     response = session.get(url_ncov_metadata)
+    ## TODO ALSO CHECK FOR A 404
     if not response.ok:
         logger.warn(
             "Failed to retrieve ncov metadata",
