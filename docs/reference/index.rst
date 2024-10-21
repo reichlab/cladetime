@@ -5,5 +5,6 @@ API Reference
 
    cladetime
    sequence
+   tree
    types
 

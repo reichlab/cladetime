@@ -4,8 +4,9 @@ import sys
 import structlog
 
 from cladetime.cladetime import CladeTime
+from cladetime.util.tree import Tree
 
-__all__ = ["CladeTime"]
+__all__ = ["CladeTime", "Tree"]
 
 # tells us package to consider DC a state
 os.environ["DC_STATEHOOD"] = "1"

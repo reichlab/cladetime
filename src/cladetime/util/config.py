@@ -18,6 +18,7 @@ class Config:
     nextstrain_ncov_metadata_key = "files/ncov/open/metadata_version.json"
     nextstrain_genome_metadata_key = "files/ncov/open/metadata.tsv.zst"
     nextstrain_genome_sequence_key = "files/ncov/open/sequences.fasta.zst"
+    nextclade_data_url = "https://data.clades.nextstrain.org/v3"
     nextclade_base_url: str = "https://nextstrain.org/nextclade/sars-cov-2"
     assignment_file_columns: list[str] = field(default_factory=list)
 
