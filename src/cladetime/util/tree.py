@@ -37,8 +37,7 @@ class Tree:
     def url(self) -> str | None:
         """
         str : URL to the JSON file that represents the SARS-CoV-2
-        reference tree that was current as of
-        :any:`cladetime.util.Tree.as_of<as_of>`.
+        reference tree that was current for the class's as_of value.
         """
         try:
             return self._get_tree_url()
