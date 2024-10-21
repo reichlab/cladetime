@@ -4,5 +4,5 @@
 CladeTime
 ==========
 
-.. autoclass:: cladetime.util.Tree
+.. autoclass:: cladetime.Tree
     :members:
