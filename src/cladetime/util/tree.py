@@ -108,3 +108,17 @@ class Tree:
             self._clade_time._config.nextstrain_ncov_metadata_key,
             self.as_of,
         )[1]
+
+    def get_reference_tree(self) -> dict:
+        """Return a reference tree used for SARS-CoV-2 clade assignments
+
+        Retrieves the reference tree that was current as of
+        :any:`tree_as_of<tree_as_of>`.
+
+        This method is not yet implemented.
+
+        Returns
+        -------
+        dict
+        """
+        return {self.as_of: "not implemented"}
