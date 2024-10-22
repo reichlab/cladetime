@@ -1,6 +1,6 @@
 """Class to handle Nexstrain-generated SARS-CoV-2 phylogenetic trees."""
 
-from pathlib import Path
+from urllib.parse import urljoin
 
 import structlog
 
@@ -31,10 +31,12 @@ class Tree:
         """Tree constructor."""
         self._clade_time = clade_time
         self.as_of = self._clade_time.tree_as_of
+        self._nextclade_data_url = self._clade_time._config.nextclade_data_url
+        self._nextclade_data_url_version = self._clade_time._config.nextclade_data_url_version
         self._url = self.url
 
     @property
-    def url(self) -> str | None:
+    def url(self) -> str:
         """
         str : URL to the JSON file that represents the SARS-CoV-2
         reference tree that was current for the class's as_of value.
@@ -42,8 +44,7 @@ class Tree:
         try:
             return self._get_tree_url()
         except TreeNotAvailableError as err:
-            print(err)
-            return None
+            raise err
 
     def __repr__(self):
         return f"Tree(as_of={self.as_of})"
@@ -92,11 +93,10 @@ class Tree:
         nextclade_dataset_name = ncov_metadata.get("nextclade_dataset_name_full")
         nextclade_dataset_version = ncov_metadata.get("nextclade_dataset_version")
 
-        tree_url = (
-            Path(self._clade_time._config.nextclade_data_url)
-            / nextclade_dataset_name
-            / nextclade_dataset_version
-            / "tree.json"
+        # nextclade_data_url = "https://data.clades.nextstrain.org/v3"
+        tree_url = urljoin(
+            self._nextclade_data_url,
+            f"{self._nextclade_data_url_version}/{nextclade_dataset_name}/{nextclade_dataset_version}/tree.json",
         )
         return tree_url
 
