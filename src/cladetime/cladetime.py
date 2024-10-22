@@ -25,9 +25,9 @@ class CladeTime:
     Parameters
     ----------
     sequence_as_of : datetime.datetime | str | None
-        Sets the versions of Nextstrain SARS-CoV-2 genome sequence
-        and sequence metadata files that will be used by
-        CladeTime properties and methods. Can be a datetime object or a
+        Sets the versions of Nextstrain SARS-CoV-2 genome sequence and
+        sequence metadata files that will be used by CladeTime
+        properties and methods. Can be a datetime object or a
         string in YYYY-MM-DD format, both of which will be treated as
         UTC. The default value is the current time.
     tree_as_of : datetime.datetime | str | None
@@ -102,9 +102,8 @@ class CladeTime:
     def tree_as_of(self) -> datetime:
         """
         datetime.datetime : The date and time (UTC) used to retrieve the NextStrain
-        reference tree. :any:`get_reference_tree<get_reference_tree>`
-        uses this date to get the reference tree that was current as
-        of this date.
+        reference tree. :py:obj:`cladetime.Tree.tree`
+        contains the reference tree that was current as of this date.
         """
         return self._tree_as_of
 
@@ -150,7 +149,7 @@ class CladeTime:
     @sequence_metadata.getter
     def sequence_metadata(self) -> pl.LazyFrame:
         """
-        :class:`polars.LazyFrame` : A Polars LazyFrame that references
+        :external+polars:std:doc:`polars.LazyFrame<reference/lazyframe/index>` : A Polars LazyFrame that references
         :any:`url_sequence_metadata<url_sequence_metadata>`
         """
         if self.url_sequence_metadata:

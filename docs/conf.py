@@ -39,9 +39,10 @@ github_username = "reichlab"
 github_repository = "cladetime"
 
 intersphinx_mapping = {
+    "nextstrain": ("https://docs.nextstrain.org/en/latest", None),
+    "polars": ("https://docs.pola.rs/api/python/stable", None),
     "python": ("https://docs.python.org/3/", None),
     "sphinx": ("https://www.sphinx-doc.org/en/master/", None),
-    "polars": ("https://docs.pola.rs/api/python/stable", None),
 }
 intersphinx_disabled_domains = ["std"]
 
