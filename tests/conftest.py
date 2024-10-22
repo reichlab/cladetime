@@ -82,16 +82,6 @@ def s3_setup(s3_object_keys, ncov_metadata):
                         Body=content,
                     )
 
-        # Add test tree.json objects. These do not need to be versioned
-        # because the version is part of the URL
-        tree_dict = {"version": "v2", "tree": {"name": "node_01", "children": {}}}
-        for n in range(1, 5):
-            s3_client.put_object(
-                Bucket=bucket_name,
-                Key=f"data/clades/version-{n}/tree.json",
-                Body=json.dumps(tree_dict),
-            )
-
         yield s3_client, bucket_name, s3_object_keys
 
 
@@ -100,15 +90,6 @@ def test_config(s3_setup):
     """
     Return a Config object for use with the s3_setup fixture.
     """
-
-    s3_client, bucket_name, s3_object_keys = s3_setup
-
-    tree_presigned_url = s3_client.generate_presigned_url(
-        "get_object",
-        Params={"Bucket": bucket_name, "Key": "data/clades/"},
-        ExpiresIn=3600,
-    )
-
     s3_client, bucket_name, s3_object_keys = s3_setup
     test_config = Config()
     test_config.nextstrain_min_seq_date = datetime(2023, 1, 1).replace(tzinfo=timezone.utc)
@@ -116,6 +97,5 @@ def test_config(s3_setup):
     test_config.nextstrain_genome_metadata_key = s3_object_keys["sequence_metadata"]
     test_config.nextstrain_genome_sequence_key = s3_object_keys["sequence"]
     test_config.nextstrain_ncov_metadata_key = s3_object_keys["ncov_metadata"]
-    test_config.nextclade_data_url = tree_presigned_url
 
     return test_config
