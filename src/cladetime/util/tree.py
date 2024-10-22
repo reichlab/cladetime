@@ -3,11 +3,13 @@
 from urllib.parse import urljoin
 
 import structlog
+from requests import Session
 
 from cladetime import CladeTime
 from cladetime.exceptions import TreeNotAvailableError
 from cladetime.util.reference import _get_s3_object_url
 from cladetime.util.sequence import _get_ncov_metadata
+from cladetime.util.session import _check_response
 
 logger = structlog.get_logger()
 
@@ -33,7 +35,15 @@ class Tree:
         self.as_of = self._clade_time.tree_as_of
         self._nextclade_data_url = self._clade_time._config.nextclade_data_url
         self._nextclade_data_url_version = self._clade_time._config.nextclade_data_url_version
+        self._tree_name = self._clade_time._config.nextclade_input_tree_name
         self._url = self.url
+
+    def __repr__(self):
+        cls = self.__class__.__name__
+        return f"{cls}(as_of={self.as_of.strftime('%Y-%m-%d')}, tree_updated={self.tree['meta'].get('updated')})"
+
+    def __str__(self):
+        return f"Represents Nexclade reference tree data as of {self.as_of.strftime('%Y-%m-%d')}"
 
     @property
     def url(self) -> str:
@@ -46,11 +56,13 @@ class Tree:
         except TreeNotAvailableError as err:
             raise err
 
-    def __repr__(self):
-        return f"Tree(as_of={self.as_of})"
-
-    def __str__(self):
-        return f"Represents Nexclade reference tree data as of {self.as_of}"
+    @property
+    def tree(self) -> dict:
+        """
+        dict : A SARS-CoV-2 reference tree in `Nextstrain Auspice JSON format
+        <https://docs.nextstrain.org/projects/auspice/en/stable/releases/v2.html#new-dataset-json-format>`_.
+        """
+        return self._get_reference_tree()
 
     def _get_tree_url(self):
         """Get the URL to a Nextclade SARS-CoV-2 reference tree.
@@ -73,7 +85,7 @@ class Tree:
             If there is no ncov metadata available for the specified date.
         """
 
-        # We can only reliably retrieve the a past reference tree if we
+        # we can only reliably retrieve the a past reference tree if we
         # have access to the ncov metadata for that date
         min_tree_as_of = self._clade_time._config.nextstrain_min_ncov_metadata_date
         if min_tree_as_of > self.as_of:
@@ -93,10 +105,10 @@ class Tree:
         nextclade_dataset_name = ncov_metadata.get("nextclade_dataset_name_full")
         nextclade_dataset_version = ncov_metadata.get("nextclade_dataset_version")
 
-        # nextclade_data_url = "https://data.clades.nextstrain.org/v3"
+        # nextclade_data_url = "https://data.clades.nextstrain.org/v3/"
         tree_url = urljoin(
             self._nextclade_data_url,
-            f"{self._nextclade_data_url_version}/{nextclade_dataset_name}/{nextclade_dataset_version}/tree.json",
+            f"{self._nextclade_data_url_version}/{nextclade_dataset_name}/{nextclade_dataset_version}/{self._tree_name}",
         )
         return tree_url
 
@@ -108,16 +120,39 @@ class Tree:
             self.as_of,
         )[1]
 
-    def get_reference_tree(self) -> dict:
+    def _get_reference_tree(self, session: Session | None = None) -> dict:
         """Return a reference tree used for SARS-CoV-2 clade assignments
 
         Retrieves the reference tree that was current as of
-        :any:`tree_as_of<tree_as_of>`.
+        :any:`tree_as_of<tree_as_of>`. The reference tree is expressed in
+        `Nextstrain Auspice JSON format
+        <https://docs.nextstrain.org/projects/auspice/en/stable/releases/v2.html#new-dataset-json-format>`_.
 
-        This method is not yet implemented.
+        Parameters
+        ----------
+        session : requests.Session, optional
+            A requests session object to use when downloading the
+            reference tree. When not provided, a new session will
+            be created with headers that `specify Nextstrain's media types
+            <https://docs.nextstrain.org/projects/auspice/en/stable/usage/api.html#media-types>`_.
+            media types.
+
 
         Returns
         -------
         dict
+            A Python dictionary that represents the reference tree.
         """
-        return {self.as_of: "not implemented"}
+
+        if not session:
+            session = Session()
+        headers = {
+            "Accept": "application/vnd.nextstrain.dataset.main+json",
+            "Content-Type": "application/vnd.nextstrain.dataset.main+json",
+        }
+
+        resp = session.get(self.url, headers=headers)
+        _check_response(resp)
+
+        tree = resp.json()
+        return tree
