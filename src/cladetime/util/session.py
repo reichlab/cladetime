@@ -25,7 +25,7 @@ def _get_session(retry: bool = True) -> requests.Session:
             total=5,
             allowed_methods=frozenset(["GET", "POST"]),
             backoff_factor=1,
-            status_forcelist=[401, 403, 404, 429, 500, 502, 503, 504],
+            status_forcelist=[429, 500, 502, 503, 504],
         )
         session.mount("https://", HTTPAdapter(max_retries=retries))
 
@@ -39,7 +39,8 @@ def _check_response(response: requests.Response) -> bool:
         # If the session retries the max number of times, the app will throw an error before we get here.
         # So if we're here, it's because the post request failed on an HTTP status not on the above status_forcelist.
         logger.error(
-            "Failed to download genome package",
+            "Download failed",
+            url=response.request.url,
             status_code=response.status_code,
             response_text=response.text,
             request=response.request.url,

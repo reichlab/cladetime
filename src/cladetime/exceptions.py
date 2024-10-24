@@ -15,3 +15,7 @@ class CladeTimeInvalidURLError(Error):
 
 class CladeTimeFutureDateWarning(Warning):
     """Raised when CladeTime as_of date is in the future."""
+
+
+class TreeNotAvailableError(Error):
+    """Raised when CladeTime cannot retrieve a reference tree for tree_as_of."""
