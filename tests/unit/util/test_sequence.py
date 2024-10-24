@@ -1,11 +1,9 @@
 from collections import Counter
-from datetime import datetime
 from pathlib import Path
 
 import polars as pl
 import pytest
 from cladetime.util.sequence import (
-    download_covid_genome_metadata,
     filter_covid_genome_metadata,
     get_covid_genome_metadata,
     parse_sequence_assignments,
@@ -65,31 +63,6 @@ def test_get_covid_genome_metadata_url(s3_setup, test_file_path, metadata_file):
     url = f"https://{bucket_name}.s3.amazonaws.com/data/object-key/{metadata_file}"
     metadata = get_covid_genome_metadata(metadata_url=url)
     assert isinstance(metadata, pl.LazyFrame)
-
-
-@pytest.mark.parametrize(
-    "as_of, filename",
-    [
-        (None, f"{datetime.now().strftime('%Y-%m-%d')}-metadata.tsv.zst"),
-        ("2023-03-20", "2023-03-20-metadata.tsv.zst"),
-    ],
-)
-def test_download_covid_genome_metadata(s3_setup, tmp_path, mock_session, as_of, filename):
-    """Test filenames saved by covid genome metadata download."""
-    s3_client, bucket_name, s3_object_keys = s3_setup
-    actual_filename = download_covid_genome_metadata(
-        mock_session, bucket_name, s3_object_keys["sequence_metadata"], tmp_path, as_of=as_of
-    )
-    assert actual_filename.name == filename
-
-
-def test_download_covid_genome_metadata_no_history(s3_setup, tmp_path, mock_session):
-    """Test genome metadata download where there is no history that matches the as_of date."""
-    s3_client, bucket_name, s3_object_keys = s3_setup
-    with pytest.raises(ValueError):
-        download_covid_genome_metadata(
-            mock_session, bucket_name, s3_object_keys["sequence_metadata"], tmp_path, as_of="2000-01-01"
-        )
 
 
 def test_filter_covid_genome_metadata():

@@ -2,7 +2,11 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from cladetime.get_clade_list import main
+
+pytest.importorskip(
+    "cladetime.get_clade_list", reason="get_clade_list moved to variant-nowcast-hub", exc_type=ImportError
+)
+from cladetime.get_clade_list import main  # noqa
 
 
 @pytest.fixture

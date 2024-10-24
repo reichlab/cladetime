@@ -15,9 +15,18 @@ logger = structlog.get_logger()
 
 def get_nextclade_dataset(as_of_date: str, data_path_root: str) -> Path:
     """
-    Return the Nextclade dataset relevant to a specified as_of_date. The dataset is
-    in .zip format and contains two components required for assignming virus
-    genome sequences to clades: a tree and the reference sequence of the virus.
+    Return the Nextclade dataset relevant to a specified as_of_date.
+
+    The dataset is in .zip format and contains two components required for
+    assignming virus genome sequences to clades: a tree and the reference
+    sequence of the virus.
+
+    Note:
+    -----
+    Deprecated? Cladetime.tree uses a different method for retrieving a
+    tree "as_of". That might now be reliable, however, so keeping this
+    here.
+
     """
 
     # Until Nextstrain provides this information, we're hard-coding a
