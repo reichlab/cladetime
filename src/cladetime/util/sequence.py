@@ -147,7 +147,11 @@ def _get_ncov_metadata(
         )
         return {}
 
-    return response.json()
+    metadata = response.json()
+    if metadata.get("nextclade_dataset_name", "").lower() == "sars-cov-2":
+        metadata["nextclade_dataset_name_full"] = "nextstrain/sars-cov-2/wuhan-hu-1/orfs"
+
+    return metadata
 
 
 def filter_covid_genome_metadata(metadata: pl.LazyFrame, cols: list = []) -> pl.LazyFrame:
@@ -175,11 +179,15 @@ def filter_covid_genome_metadata(metadata: pl.LazyFrame, cols: list = []) -> pl.
         .filter(
             pl.col("country") == "USA",
             pl.col("division").is_in(states),
-            pl.col("date").is_not_null(),
             pl.col("host") == "Homo sapiens",
         )
         .rename({"clade_nextstrain": "clade", "division": "location"})
         .cast({"date": pl.Date}, strict=False)
+        # date filtering at the end ensures we filter out null
+        # values created by the above .cast operation
+        .filter(
+            pl.col("date").is_not_null(),
+        )
     )
 
     return filtered_metadata

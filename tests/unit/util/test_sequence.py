@@ -94,15 +94,23 @@ def test_download_covid_genome_metadata_no_history(s3_setup, tmp_path, mock_sess
 
 def test_filter_covid_genome_metadata():
     test_genome_metadata = {
-        "date": ["2022-01-01", "2022-01-02", "2022-01-03", "2023-12-25", None, "2023-12-27"],
-        "host": ["Homo sapiens", "Homo sapiens", "Homo sapiens", "Narwhals", "Homo sapiens", "Homo sapiens"],
-        "country": ["USA", "Argentina", "USA", "USA", "USA", "USA"],
-        "division": ["Alaska", "Maine", "Guam", "Puerto Rico", "Utah", "Pennsylvania"],
-        "clade_nextstrain": ["AAA", "BBB", "CCC", "DDD", "EEE", "FFF"],
-        "location": ["Vulcan", "Reisa", "Bajor", "Deep Space 9", "Earth", "Cardassia"],
-        "genbank_accession": ["A1", "A2", "B1", "B2", "C1", "C2"],
-        "genbank_accession_rev": ["A1.1", "A2.4", "B1.1", "B2.5", "C1.1", "C2.1"],
-        "unwanted_column": [1, 2, 3, 4, 5, 6],
+        "date": ["2022-01-01", "2022-01-02", "2022-01-03", "2023-12-25", None, "2023-12-27", "2023-05"],
+        "host": [
+            "Homo sapiens",
+            "Homo sapiens",
+            "Homo sapiens",
+            "Narwhals",
+            "Homo sapiens",
+            "Homo sapiens",
+            "Homo sapiens",
+        ],
+        "country": ["USA", "Argentina", "USA", "USA", "USA", "USA", "USA"],
+        "division": ["Alaska", "Maine", "Guam", "Puerto Rico", "Utah", "Pennsylvania", "Pennsylvania"],
+        "clade_nextstrain": ["AAA", "BBB", "CCC", "DDD", "EEE", "FFF", "FFF"],
+        "location": ["Vulcan", "Reisa", "Bajor", "Deep Space 9", "Earth", "Cardassia", "Cardassia"],
+        "genbank_accession": ["A1", "A2", "B1", "B2", "C1", "C2", "C2"],
+        "genbank_accession_rev": ["A1.1", "A2.4", "B1.1", "B2.5", "C1.1", "C2.1", "C2.1"],
+        "unwanted_column": [1, 2, 3, 4, 5, 6, 7],
     }
 
     lf_metadata = pl.LazyFrame(test_genome_metadata)
