@@ -98,11 +98,11 @@ def _get_ncov_metadata(
     return metadata
 
 
-def filter_covid_genome_metadata(metadata: pl.LazyFrame, cols: list = []) -> pl.LazyFrame:
+def filter_covid_genome_metadata(metadata: pl.LazyFrame, cols: list | None = None) -> pl.LazyFrame:
     """Apply a standard set of filters to the GenBank genome metadata."""
 
     # Default columns to include in the filtered metadata
-    if len(cols) == 0:
+    if not cols:
         cols = [
             "clade_nextstrain",
             "country",
