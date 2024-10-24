@@ -1,86 +1,30 @@
 """Functions for retrieving and parsing SARS-CoV-2 virus genome data."""
 
-import json
 import lzma
-import zipfile
-from datetime import datetime, timezone
+import os
 from pathlib import Path
+from urllib.parse import urlparse
 
 import polars as pl
 import structlog
 import us
 from requests import Session
 
-from cladetime.util.reference import _get_s3_object_url
-from cladetime.util.session import _check_response, _get_session
+from cladetime.util.session import _get_session
 from cladetime.util.timing import time_function
 
 logger = structlog.get_logger()
 
 
 @time_function
-def get_covid_genome_data(released_since_date: str, base_url: str, filename: str):
-    """
-    Download genome data package from NCBI.
-    FIXME: Download the Nextclade-processed GenBank sequence data (which originates from NCBI)
-    from https://data.nextstrain.org/files/ncov/open/sequences.fasta.zst instead of using
-    the NCBI API.
-    """
-    headers = {
-        "Accept": "application/zip",
-    }
-    session = _get_session()
-    session.headers.update(headers)
+def _download_from_url(session: Session, url: str, data_path: Path) -> Path:
+    """Download a file from the specified URL and save it to data_path."""
 
-    # TODO: this might be a better as an item in the forthcoming config file
-    request_body = {
-        "released_since": released_since_date,
-        "taxon": "SARS-CoV-2",
-        "refseq_only": False,
-        "annotated_only": False,
-        "host": "Homo sapiens",
-        "complete_only": False,
-        "table_fields": ["unspecified"],
-        "include_sequence": ["GENOME"],
-        "aux_report": ["DATASET_REPORT"],
-        "format": "tsv",
-        "use_psg": False,
-    }
+    parsed_url = urlparse(url)
+    url_filename = os.path.basename(parsed_url.path)
+    filename = data_path / url_filename
 
-    logger.info("NCBI API call starting", released_since_date=released_since_date)
-
-    response = session.post(base_url, data=json.dumps(request_body), timeout=(300, 300))
-    _check_response(response)
-
-    # Originally tried saving the NCBI package via a stream call and iter_content (to prevent potential
-    # memory issues that can arise when download large files). However, ran into an intermittent error:
-    # ChunkedEncodingError(ProtocolError('Response ended prematurely').
-    # We may need to revisit this at some point, depending on how much data we place to request via the
-    # API and what kind of machine the pipeline will run on.
-    with open(filename, "wb") as f:
-        f.write(response.content)
-
-
-@time_function
-def download_covid_genome_metadata(
-    session: Session, bucket: str, key: str, data_path: Path, as_of: str | None = None, use_existing: bool = False
-) -> Path:
-    """Download the latest GenBank genome metadata data from Nextstrain."""
-
-    if as_of is None:
-        as_of_datetime = datetime.now().replace(tzinfo=timezone.utc)
-    else:
-        as_of_datetime = datetime.strptime(as_of, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-
-    (s3_version, s3_url) = _get_s3_object_url(bucket, key, as_of_datetime)
-    filename = data_path / f"{as_of_datetime.date().strftime('%Y-%m-%d')}-{Path(key).name}"
-
-    if use_existing and filename.exists():
-        logger.info("using existing genome metadata file", metadata_file=str(filename))
-        return filename
-
-    logger.info("starting genome metadata download", source=s3_url, destination=str(filename))
-    with session.get(s3_url, stream=True) as result:
+    with session.get(url, stream=True) as result:
         result.raise_for_status()
         with open(filename, "wb") as f:
             for chunk in result.iter_content(chunk_size=None):
@@ -207,20 +151,6 @@ def get_clade_counts(filtered_metadata: pl.LazyFrame) -> pl.LazyFrame:
     counts = filtered_metadata.select(cols).group_by("location", "date", "clade").agg(pl.len().alias("count"))
 
     return counts
-
-
-def _unzip_sequence_package(filename: Path, data_path: Path):
-    """Unzip the downloaded virus genome data package."""
-    with zipfile.ZipFile(filename, "r") as package_zip:
-        zip_contents = package_zip.namelist()
-        is_metadata = next((s for s in zip_contents if "data_report" in s), None)
-        is_sequence = next((s for s in zip_contents if "genomic" in s), None)
-        if is_metadata and is_sequence:
-            package_zip.extractall(data_path)
-        else:
-            logger.error("NCBI package is missing expected files", zip_contents=zip_contents)
-            # Exit the pipeline without displaying a traceback
-            raise SystemExit("Error downloading NCBI package")
 
 
 def parse_sequence_assignments(df_assignments: pl.DataFrame) -> pl.DataFrame:

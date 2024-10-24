@@ -79,7 +79,7 @@ def test_config(s3_setup):
     Return a Config object for use with the s3_setup fixture.
     """
     s3_client, bucket_name, s3_object_keys = s3_setup
-    test_config = Config(datetime.now(), datetime.now())
+    test_config = Config()
     test_config.nextstrain_min_seq_date = datetime(2023, 1, 1).replace(tzinfo=timezone.utc)
     test_config.nextstrain_ncov_bucket = "versioned-bucket"
     test_config.nextstrain_genome_metadata_key = s3_object_keys["sequence_metadata"]

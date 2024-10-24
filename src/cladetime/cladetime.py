@@ -167,9 +167,7 @@ class CladeTime:
 
     def _get_config(self) -> Config:
         """Return a config object."""
-        # dates passed to Config don't actually do anything in this case
-        # (config needs a refactor)
-        config = Config(datetime.now(), datetime.now())
+        config = Config()
 
         return config
 

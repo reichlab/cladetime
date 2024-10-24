@@ -15,9 +15,9 @@ def test_main(tmp_path):
         result = runner.invoke(
             main,
             [
-                "--sequence-released-since-date",
+                "--sequence-collection-date",
                 str(test_date),
-                "--reference-tree-date",
+                "--tree-as-of",
                 str(test_date),
                 "--data-dir",
                 tmp_path,
@@ -38,9 +38,9 @@ def test_main_bad_date(tmp_path):
         result = runner.invoke(
             main,
             [
-                "--sequence-released-since-date",
+                "--sequence-collection-date",
                 str(test_date),
-                "--reference-tree-date",
+                "--tree-as-of",
                 "5/1/2024",
                 "--data-dir",
                 tmp_path,
