@@ -1,3 +1,4 @@
+import os
 import sys
 
 import structlog
@@ -5,6 +6,9 @@ import structlog
 from cladetime.cladetime import CladeTime
 
 __all__ = ["CladeTime"]
+
+# tells us package to consider DC a state
+os.environ["DC_STATEHOOD"] = "1"
 
 
 def setup_logging():

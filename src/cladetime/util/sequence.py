@@ -10,7 +10,9 @@ import structlog
 import us
 from requests import Session
 
-from cladetime.util.session import _get_session
+from cladetime.typing import StateFormat
+from cladetime.util.reference import _get_s3_object_url
+from cladetime.util.session import _check_response, _get_session
 from cladetime.util.timing import time_function
 
 logger = structlog.get_logger()
@@ -98,8 +100,13 @@ def _get_ncov_metadata(
     return metadata
 
 
-def filter_covid_genome_metadata(metadata: pl.LazyFrame, cols: list | None = None) -> pl.LazyFrame:
+def filter_covid_genome_metadata(
+    metadata: pl.LazyFrame, cols: list | None = None, state_format: StateFormat = StateFormat.ABBR
+) -> pl.LazyFrame:
     """Apply a standard set of filters to the GenBank genome metadata."""
+
+    if state_format not in StateFormat:
+        raise ValueError(f"Invalid state_format. Must be one of: {list(StateFormat.__members__.items())}")
 
     # Default columns to include in the filtered metadata
     if not cols:
@@ -115,7 +122,7 @@ def filter_covid_genome_metadata(metadata: pl.LazyFrame, cols: list | None = Non
 
     # There are some other odd divisions in the data, but these are 50 states, DC and PR
     states = [state.name for state in us.states.STATES]
-    states.extend(["Washington DC", "Puerto Rico"])
+    states.extend(["Washington DC", "District of Columbia", "Puerto Rico"])
 
     # Filter dataset and do some general tidying
     filtered_metadata = (
@@ -125,13 +132,29 @@ def filter_covid_genome_metadata(metadata: pl.LazyFrame, cols: list | None = Non
             pl.col("division").is_in(states),
             pl.col("host") == "Homo sapiens",
         )
-        .rename({"clade_nextstrain": "clade", "division": "location"})
+        .rename({"clade_nextstrain": "clade"})
         .cast({"date": pl.Date}, strict=False)
         # date filtering at the end ensures we filter out null
         # values created by the above .cast operation
         .filter(
             pl.col("date").is_not_null(),
         )
+    )
+
+    # Create state mappings based on state_format parameter, including a DC alias, since
+    # Nextrain's metadata uses a different name than the us package
+    if state_format == StateFormat.FIPS:
+        state_dict = {state.name: state.fips for state in us.states.STATES_AND_TERRITORIES}
+        state_dict["Washington DC"] = us.states.DC.fips
+    elif state_format == StateFormat.ABBR:
+        state_dict = {state.name: state.abbr for state in us.states.STATES_AND_TERRITORIES}
+        state_dict["Washington DC"] = us.states.DC.abbr
+    else:
+        state_dict = {state.name: state.name for state in us.states.STATES_AND_TERRITORIES}
+        state_dict["Washington DC"] = "Washington DC"
+
+    filtered_metadata = filtered_metadata.with_columns(pl.col("division").replace(state_dict).alias("location")).drop(
+        "division"
     )
 
     return filtered_metadata

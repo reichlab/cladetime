@@ -3,6 +3,7 @@ from pathlib import Path
 
 import polars as pl
 import pytest
+from cladetime.typing import StateFormat
 from cladetime.util.sequence import (
     filter_covid_genome_metadata,
     get_covid_genome_metadata,
@@ -78,7 +79,7 @@ def test_filter_covid_genome_metadata():
             "Homo sapiens",
         ],
         "country": ["USA", "Argentina", "USA", "USA", "USA", "USA", "USA"],
-        "division": ["Alaska", "Maine", "Guam", "Puerto Rico", "Utah", "Pennsylvania", "Pennsylvania"],
+        "division": ["Alaska", "Maine", "Guam", "Puerto Rico", "Utah", "Washington DC", "Pennsylvania"],
         "clade_nextstrain": ["AAA", "BBB", "CCC", "DDD", "EEE", "FFF", "FFF"],
         "location": ["Vulcan", "Reisa", "Bajor", "Deep Space 9", "Earth", "Cardassia", "Cardassia"],
         "genbank_accession": ["A1", "A2", "B1", "B2", "C1", "C2", "C2"],
@@ -87,9 +88,13 @@ def test_filter_covid_genome_metadata():
     }
 
     lf_metadata = pl.LazyFrame(test_genome_metadata)
-    lf_filtered = filter_covid_genome_metadata(lf_metadata)
+    lf_filtered = filter_covid_genome_metadata(lf_metadata).collect()
 
-    assert len(lf_filtered.collect()) == 2
+    assert len(lf_filtered) == 2
+
+    locations = lf_filtered["location"].to_list()
+    locations.sort()
+    assert locations == ["AK", "DC"]
 
     actual_schema = lf_filtered.collect_schema()
     expected_schema = pl.Schema(
@@ -97,13 +102,61 @@ def test_filter_covid_genome_metadata():
             "clade": pl.String,
             "country": pl.String,
             "date": pl.Date,
-            "location": pl.String,
             "genbank_accession": pl.String,
             "genbank_accession_rev": pl.String,
             "host": pl.String,
+            "location": pl.String,
         }
     )
     assert actual_schema == expected_schema
+
+
+def test_filter_covid_genome_metadata_state_name():
+    num_test_rows = 4
+    test_genome_metadata = {
+        "date": ["2022-01-01"] * num_test_rows,
+        "host": ["Homo sapiens"] * num_test_rows,
+        "country": ["USA"] * num_test_rows,
+        "clade_nextstrain": ["AAA"] * num_test_rows,
+        "location": ["Earth"] * num_test_rows,
+        "genbank_accession": ["A1"] * num_test_rows,
+        "genbank_accession_rev": ["A1.1"] * num_test_rows,
+        "division": ["Alaska", "Puerto Rico", "Washington DC", "Fake State"],
+    }
+
+    lf_metadata = pl.LazyFrame(test_genome_metadata)
+    lf_filtered = filter_covid_genome_metadata(lf_metadata, state_format=StateFormat.NAME)
+    lf_filtered = lf_filtered.collect()
+
+    # Un-mapped states are dropped from dataset
+    assert len(lf_filtered) == 3
+
+    locations = set(lf_filtered["location"].to_list())
+    assert locations == {"Alaska", "Puerto Rico", "Washington DC"}
+
+
+def test_filter_covid_genome_metadata_state_fips():
+    num_test_rows = 4
+    test_genome_metadata = {
+        "date": ["2022-01-01"] * num_test_rows,
+        "host": ["Homo sapiens"] * num_test_rows,
+        "country": ["USA"] * num_test_rows,
+        "clade_nextstrain": ["AAA"] * num_test_rows,
+        "location": ["Earth"] * num_test_rows,
+        "genbank_accession": ["A1"] * num_test_rows,
+        "genbank_accession_rev": ["A1.1"] * num_test_rows,
+        "division": ["Massachusetts", "Puerto Rico", "Washington DC", "Fake State"],
+    }
+
+    lf_metadata = pl.LazyFrame(test_genome_metadata)
+    lf_filtered = filter_covid_genome_metadata(lf_metadata, state_format=StateFormat.FIPS)
+    lf_filtered = lf_filtered.collect()
+
+    # Un-mapped states are dropped from dataset
+    assert len(lf_filtered) == 3
+
+    locations = set(lf_filtered["location"].to_list())
+    assert locations == {"11", "25", "72"}
 
 
 def test_parse_sequence_assignments(df_assignments):
