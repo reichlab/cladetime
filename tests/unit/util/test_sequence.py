@@ -3,7 +3,7 @@ from pathlib import Path
 
 import polars as pl
 import pytest
-from cladetime.typing import StateFormat
+from cladetime.types import StateFormat
 from cladetime.util.sequence import (
     filter_covid_genome_metadata,
     get_covid_genome_metadata,

@@ -10,7 +10,7 @@ import structlog
 import us
 from requests import Session
 
-from cladetime.typing import StateFormat
+from cladetime.types import StateFormat
 from cladetime.util.reference import _get_s3_object_url
 from cladetime.util.session import _check_response, _get_session
 from cladetime.util.timing import time_function
