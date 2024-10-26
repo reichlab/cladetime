@@ -103,8 +103,76 @@ def _get_ncov_metadata(
 def filter_covid_genome_metadata(
     metadata: pl.LazyFrame, cols: list | None = None, state_format: StateFormat = StateFormat.ABBR
 ) -> pl.LazyFrame:
-    """Apply a standard set of filters to the GenBank genome metadata."""
+    """Apply standard filters to Nextstrain's SARS-CoV-2 sequence metadata.
 
+    A helper function to apply commonly-used filters to a Polars LazyFrame
+    that represents Nextstrain's SARS-CoV-2 sequence metadata. It filters
+    on human sequences from the United States (including Puerto Rico and
+    Washington, DC).
+
+    This function also performs small transformations to the metadata,
+    such as casting the collection date to a date type, renaming columns,
+    and returning alternate state formats if requested.
+
+    Parameters
+    ----------
+    metadata : :class:`polars.LazyFrame`
+        The :attr:`cladetime.CladeTime.url_sequence_metadata`
+        attribute of a :class:`cladetime.CladeTime` object. This parameter
+        represents SARS-CoV-2 sequence metadata produced by Nextstrain
+        as an intermediate file in their daily workflow
+    cols : list
+        Optional. A list of columns to include in the filtered metadata.
+        The default columns included in the filtered metadata are:
+        clade_nextstrain, country, date, division, genbank_accession,
+        genbank_accession_rev, host
+    state_format : :class:`cladetime.types.StateFormat`
+        Optional. The state name format returned in the filtered metadata's
+        location column. Defaults to `StateFormat.ABBR`
+
+    Returns
+    -------
+    :class:`polars.LazyFrame`
+        A Polars LazyFrame that represents the filtered SARS-CoV-2 sequence
+        metadata.
+
+    Raises
+    ------
+    ValueError
+        If the state_format parameter is not a valid
+        :class:`cladetime.types.StateFormat`.
+
+    Notes
+    -----
+    This function will filter out metadata rows with invalid state names or
+    date strings that cannot be cast to a Polars date format.
+
+    Example:
+    --------
+    >>> from cladetime import CladeTime
+    >>> from cladetime.util.sequence import filter_covid_genome_metadata
+
+    Apply common filters to the sequence metadata of a CladeTime object:
+
+    >>> ct = CladeTime(seq_as_of="2024-10-15")
+    >>> ct = CladeTime(sequence_as_of="2024-10-15")
+    >>> filtered_metadata = filter_covid_genome_metadata(ct.sequence_metadata)
+    >>> filtered_metadata.collect().head(5)
+    shape: (5, 7)
+    ┌───────┬─────────┬────────────┬────────────┬────────────┬──────────────┬──────┬
+    │ clade ┆ country ┆ date       ┆ genbank_   ┆ genbank_ac ┆ host         ┆ loca │
+    │       ┆         ┆            ┆ accession  ┆ cession_rev┆              ┆ tion │
+    │ ---   ┆ ---     ┆ ---        ┆ ---        ┆ ---        ┆ ---          ┆ ---  │
+    │ str   ┆ str     ┆ date       ┆ str        ┆ str        ┆ str          ┆ str  │
+    │       ┆         ┆            ┆            ┆            ┆              ┆      │
+    ╞═══════╪═════════╪════════════╪════════════╪════════════╪══════════════╪══════╡
+    │ 22A   ┆ USA     ┆ 2022-07-07 ┆ PP223234   ┆ PP223234.1 ┆ Homo sapiens ┆ AL   │
+    │ 22B   ┆ USA     ┆ 2022-07-02 ┆ PP223435   ┆ PP223435.1 ┆ Homo sapiens ┆ AZ   │
+    │ 22B   ┆ USA     ┆ 2022-07-19 ┆ PP223235   ┆ PP223235.1 ┆ Homo sapiens ┆ AZ   │
+    │ 22B   ┆ USA     ┆ 2022-07-15 ┆ PP223236   ┆ PP223236.1 ┆ Homo sapiens ┆ AZ   │
+    │ 22B   ┆ USA     ┆ 2022-07-20 ┆ PP223237   ┆ PP223237.1 ┆ Homo sapiens ┆ AZ   │
+    └───────┴─────────┴────────────┴────────────┴────────────┴─────────────────────┴
+    """
     if state_format not in StateFormat:
         raise ValueError(f"Invalid state_format. Must be one of: {list(StateFormat.__members__.items())}")
 

@@ -117,7 +117,7 @@ myst_enable_extensions = [
 pygments_style = "friendly"
 
 # Show typehints as content of the function or method
-autodoc_typehints = "description"
+autodoc_typehints = "signature"
 autodoc_member_order = "bysource"
 
 # Open Graph metadata
