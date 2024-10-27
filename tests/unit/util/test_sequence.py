@@ -3,12 +3,11 @@ from pathlib import Path
 
 import polars as pl
 import pytest
-from cladetime.types import StateFormat
-from cladetime.util.sequence import (
-    filter_covid_genome_metadata,
+from cladetime.sequence import (
+    filter_sequence_metadata,
     get_covid_genome_metadata,
-    parse_sequence_assignments,
 )
+from cladetime.types import StateFormat
 
 
 @pytest.fixture
@@ -88,7 +87,7 @@ def test_filter_covid_genome_metadata():
     }
 
     lf_metadata = pl.LazyFrame(test_genome_metadata)
-    lf_filtered = filter_covid_genome_metadata(lf_metadata).collect()
+    lf_filtered = filter_sequence_metadata(lf_metadata).collect()
 
     assert len(lf_filtered) == 2
 
@@ -125,7 +124,7 @@ def test_filter_covid_genome_metadata_state_name():
     }
 
     lf_metadata = pl.LazyFrame(test_genome_metadata)
-    lf_filtered = filter_covid_genome_metadata(lf_metadata, state_format=StateFormat.NAME)
+    lf_filtered = filter_sequence_metadata(lf_metadata, state_format=StateFormat.NAME)
     lf_filtered = lf_filtered.collect()
 
     # Un-mapped states are dropped from dataset
@@ -149,7 +148,7 @@ def test_filter_covid_genome_metadata_state_fips():
     }
 
     lf_metadata = pl.LazyFrame(test_genome_metadata)
-    lf_filtered = filter_covid_genome_metadata(lf_metadata, state_format=StateFormat.FIPS)
+    lf_filtered = filter_sequence_metadata(lf_metadata, state_format=StateFormat.FIPS)
     lf_filtered = lf_filtered.collect()
 
     # Un-mapped states are dropped from dataset
@@ -157,20 +156,3 @@ def test_filter_covid_genome_metadata_state_fips():
 
     locations = set(lf_filtered["location"].to_list())
     assert locations == {"11", "25", "72"}
-
-
-def test_parse_sequence_assignments(df_assignments):
-    result = parse_sequence_assignments(df_assignments)
-
-    # resulting dataframe should have an additional column called "seq"
-    assert Counter(result.columns) == Counter(["seqName", "clade", "seq"])
-
-    # check resulting sequence numbers
-    assert Counter(result["seq"].to_list()) == Counter(["PP782799.1", "ABCDEFG", "12345678"])
-
-
-def test_parse_sequence_duplicates(df_assignments):
-    df_duplicates = pl.concat([df_assignments, df_assignments])
-
-    with pytest.raises(ValueError):
-        parse_sequence_assignments(df_duplicates)

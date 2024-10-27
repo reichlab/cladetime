@@ -7,9 +7,9 @@ import polars as pl
 import structlog
 
 from cladetime.exceptions import CladeTimeFutureDateWarning, CladeTimeInvalidDateError, CladeTimeInvalidURLError
+from cladetime.sequence import _get_ncov_metadata, get_covid_genome_metadata
 from cladetime.util.config import Config
 from cladetime.util.reference import _get_s3_object_url
-from cladetime.util.sequence import _get_ncov_metadata, get_covid_genome_metadata
 
 logger = structlog.get_logger()
 
