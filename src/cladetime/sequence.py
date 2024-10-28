@@ -178,7 +178,7 @@ def filter_sequence_metadata(
         raise ValueError(f"Invalid state_format. Must be one of: {list(StateFormat.__members__.items())}")
 
     # Default columns to include in the filtered metadata
-    if not cols:
+    if cols is None:
         cols = [
             "clade_nextstrain",
             "country",
