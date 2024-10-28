@@ -50,6 +50,11 @@ class Tree:
         """
         str : URL to the JSON file that represents the SARS-CoV-2
         reference tree that was current for the class's as_of value.
+
+        .. warning::
+            This property is an experimental convenience that allows quick
+            browsing of a reference tree. Use the :py:attr:`tree<tree>`
+            property for programmatic access to a reference tree.
         """
         try:
             return self._get_tree_url()
