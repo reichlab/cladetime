@@ -100,14 +100,14 @@ def _get_ncov_metadata(
 
 
 def filter_sequence_metadata(
-    metadata: pl.LazyFrame, cols: list | None = None, state_format: StateFormat = StateFormat.ABBR
-) -> pl.LazyFrame:
+    metadata: pl.DataFrame | pl.LazyFrame, cols: list | None = None, state_format: StateFormat = StateFormat.ABBR
+) -> pl.DataFrame | pl.LazyFrame:
     """Apply standard filters to Nextstrain's SARS-CoV-2 sequence metadata.
 
-    A helper function to apply commonly-used filters to a Polars LazyFrame
-    that represents Nextstrain's SARS-CoV-2 sequence metadata. It filters
-    on human sequences from the United States (including Puerto Rico and
-    Washington, DC).
+    A helper function to apply commonly-used filters to a Polars DataFrame
+    or LazyFrame that represents Nextstrain's SARS-CoV-2 sequence metadata.
+    It filters on human sequences from the United States (including Puerto Rico
+    and Washington, DC).
 
     This function also performs small transformations to the metadata,
     such as casting the collection date to a date type, renaming columns,
@@ -115,11 +115,12 @@ def filter_sequence_metadata(
 
     Parameters
     ----------
-    metadata : :class:`polars.LazyFrame`
-        The :attr:`cladetime.CladeTime.url_sequence_metadata`
-        attribute of a :class:`cladetime.CladeTime` object. This parameter
-        represents SARS-CoV-2 sequence metadata produced by Nextstrain
-        as an intermediate file in their daily workflow
+    metadata : :class:`polars.DataFrame` or :class:`polars.LazyFrame`
+        A Polars DataFrame or LazyFrame that represents SARS-CoV-2
+        sequence metadata produced by Nextstrain as an intermediate file in
+        their daily workflow. This parameter is often the
+        :attr:`cladetime.CladeTime.url_sequence_metadata` attribute
+        of a :class:`cladetime.CladeTime` object
     cols : list
         Optional. A list of columns to include in the filtered metadata.
         The default columns included in the filtered metadata are:
@@ -131,9 +132,10 @@ def filter_sequence_metadata(
 
     Returns
     -------
-    :class:`polars.LazyFrame`
-        A Polars LazyFrame that represents the filtered SARS-CoV-2 sequence
-        metadata.
+    :class:`polars.DataFrame` or :class:`polars.LazyFrame`
+        A Polars object that represents the filtered SARS-CoV-2 sequence
+        metadata. The type of returned object will match the type of the
+        function's metadata parameter.
 
     Raises
     ------

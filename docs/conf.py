@@ -135,6 +135,8 @@ nitpicky = True
 nitpick_ignore = [
     ("py:class", "datetime"),
     ("py:class", "polars.LazyFrame"),
+    ("py:class", "polars.dataframe.frame.DataFrame"),
+    ("py:class", "polars.DataFrame"),
     ("py:class", "polars.lazyframe.frame.LazyFrame"),
 ]
 
