@@ -11,11 +11,8 @@ import rich_click as click
 import structlog
 
 from cladetime import CladeTime
-from cladetime.sequence import (
-    get_covid_genome_data,
-)
+from cladetime.sequence import _download_from_url, filter_sequence_metadata
 from cladetime.util.config import Config
-from cladetime.util.reference import _download_from_url
 from cladetime.util.session import _get_session
 from cladetime.util.timing import time_function
 
@@ -63,7 +60,7 @@ def get_sequence_metadata(metadata: pl.DataFrame, sequence_collection_date: date
     ]
 
     # clean and filter metadata (same process used to generate the weekly clade list)
-    filtered_metadata = get_covid_genome_data(metadata, cols)
+    filtered_metadata = filter_sequence_metadata(metadata, cols)
 
     # add filters based on user input
     filtered_metadata = filtered_metadata.filter(pl.col("date") >= sequence_collection_date)
