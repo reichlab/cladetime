@@ -77,7 +77,7 @@ class Tree:
         --------
         str
             URL to the tree.json file used for clade assignment as of
-            the date specified in :any:`cladetime.util.Tree.as_of<as_of>`.
+            the date specified in :any:`cladetime.Tree.as_of<as_of>`.
 
         Raises:
         -------

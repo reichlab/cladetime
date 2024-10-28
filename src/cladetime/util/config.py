@@ -22,10 +22,10 @@ class Config:
     nextclade_data_url_version = "v3"
     nextclade_base_url: str = "https://nextstrain.org/nextclade/sars-cov-2"
     nextclade_input_tree_name: str = "tree.json"
-    reference_tree_file: AnyPath = None
-    root_sequence_file: AnyPath = None
-    assignment_no_metadata_file: AnyPath = None
-    assignment_file: AnyPath = None
+    reference_tree_file: Path | None = None
+    root_sequence_file: Path | None = None
+    assignment_no_metadata_file: Path | None = None
+    assignment_file: Path | None = None
     assignment_file_columns: list[str] = field(default_factory=list)
 
     def __post_init__(

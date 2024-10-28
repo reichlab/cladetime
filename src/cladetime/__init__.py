@@ -4,7 +4,7 @@ import sys
 import structlog
 
 from cladetime.cladetime import CladeTime
-from cladetime.util.tree import Tree
+from cladetime.tree import Tree
 
 __all__ = ["CladeTime", "Tree"]
 
