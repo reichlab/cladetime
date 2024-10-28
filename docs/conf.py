@@ -117,7 +117,7 @@ myst_enable_extensions = [
 pygments_style = "friendly"
 
 # Show typehints as content of the function or method
-autodoc_typehints = "description"
+autodoc_typehints = "signature"
 autodoc_member_order = "bysource"
 
 # Open Graph metadata
@@ -135,6 +135,8 @@ nitpicky = True
 nitpick_ignore = [
     ("py:class", "datetime"),
     ("py:class", "polars.LazyFrame"),
+    ("py:class", "polars.dataframe.frame.DataFrame"),
+    ("py:class", "polars.DataFrame"),
     ("py:class", "polars.lazyframe.frame.LazyFrame"),
 ]
 

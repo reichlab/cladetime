@@ -1,7 +1,5 @@
-===============
 User Guide
-===============
-
+===========
 
 
 Finding Nextstrain SARS-CoV-2 sequences and sequence metadata
