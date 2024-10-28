@@ -21,6 +21,8 @@ cloudpathlib==0.18.1
     # via cladetime (pyproject.toml)
 colorama==0.4.6
     # via awscli
+docker==7.1.0
+    # via cladetime (pyproject.toml)
 docutils==0.16
     # via awscli
 idna==3.7
@@ -58,7 +60,9 @@ pytz==2024.1
 pyyaml==6.0.1
     # via awscli
 requests==2.32.3
-    # via cladetime (pyproject.toml)
+    # via
+    #   cladetime (pyproject.toml)
+    #   docker
 rich==13.7.1
     # via
     #   cladetime (pyproject.toml)
@@ -83,6 +87,7 @@ urllib3==2.2.1
     # via
     #   cladetime (pyproject.toml)
     #   botocore
+    #   docker
     #   requests
 us==3.2.0
     # via cladetime (pyproject.toml)

@@ -1,59 +1,19 @@
 """Functions for retrieving and parsing SARS-CoV-2 phylogenic tree data."""
 
-import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Tuple
 
 import boto3
+import docker
 import structlog
 from botocore import UNSIGNED
 from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError
+from docker.errors import DockerException
+
+from cladetime.exceptions import NextcladeNotAvailableError
 
 logger = structlog.get_logger()
-
-
-def get_nextclade_dataset(as_of_date: str, data_path_root: str) -> Path:
-    """
-    Return the Nextclade dataset relevant to a specified as_of_date.
-
-    The dataset is in .zip format and contains two components required for
-    assignming virus genome sequences to clades: a tree and the reference
-    sequence of the virus.
-
-    Note:
-    -----
-    Deprecated? Cladetime.tree uses a different method for retrieving a
-    tree "as_of". That might now be reliable, however, so keeping this
-    here.
-
-    """
-
-    # Until Nextstrain provides this information, we're hard-coding a
-    # a specific version of the nextclade dataset here.
-    as_of_date = "not yet implemented"
-    DATASET_VERSION = "2024-07-17--12-57-03Z"
-    DATASET_PATH = Path(f"{data_path_root}/nextclade_dataset_{DATASET_VERSION}.zip")
-
-    subprocess.run(
-        [
-            "nextclade",
-            "dataset",
-            "get",
-            "--name",
-            "sars-cov-2",
-            "--tag",
-            DATASET_VERSION,
-            "--output-zip",
-            str(DATASET_PATH),
-        ]
-    )
-
-    logger.info(
-        "Nextclade reference dataset retrieved", as_of_date=as_of_date, version=DATASET_VERSION, output_zip=DATASET_PATH
-    )
-
-    return DATASET_PATH
 
 
 def _get_s3_object_url(bucket_name: str, object_key: str, date: datetime) -> Tuple[str, str]:
@@ -88,3 +48,78 @@ def _get_s3_object_url(bucket_name: str, object_key: str, date: datetime) -> Tup
     version_url = f"https://{bucket_name}.s3.amazonaws.com/{object_key}?versionId={version_id}"
 
     return version_id, version_url
+
+
+def get_nextclade_dataset(
+    nextclade_cli_version: str, dataset_name: str, dataset_version: str, output_path: Path
+) -> Path:
+    """Return a specific version of a Nextclade dataset.
+
+    Create a Docker client and use it to run the Nextclade CLI
+    :external:doc:`dataset get<user/nextclade-cli/usage>` command.
+    The Nextclade dataset is saved as a zip file.
+
+    Parameters
+    ----------
+    nextclade_cli_version : str
+        Version of the Nextclade CLI to use. Used as the tag when
+        pulling the Nextclade CLI Docker image.
+    dataset_name : str
+        Name of the Nextclade dataset to retrieve (e.g., "sars-cov-2")
+    dataset_version : str
+        Nextclade dataset version to retrieve (e.g., "2024-09-25--21-50-30Z")
+    output_path : pathlib.Path
+        Where to save the Nextclade dataset zip file
+
+    Returns
+    -------
+    pathlib.Path
+        Full path to the Nexcclade dataset zip file
+
+    Raises
+    ------
+    NextcladeNotAvailableError
+        If there is an error creating a Docker client or running Nextclade
+        CLI commands using the Docker image.
+    """
+    zip_filename = f"nextclade_{dataset_name}_{dataset_version}.zip"
+    output_file = output_path / zip_filename
+
+    try:
+        client = docker.from_env()
+    except DockerException as err:
+        logger.error("Error creating py-docker client", error=err)
+        raise NextcladeNotAvailableError(
+            "Unable to create client for Nextstrain CLI. Is Docker installed and running?"
+        ) from err
+
+    try:
+        client.containers.run(
+            image=f"nextstrain/nextclade:{nextclade_cli_version}",
+            command=[
+                "nextclade",
+                "dataset",
+                "get",
+                "--name",
+                dataset_name,
+                "--tag",
+                dataset_version,
+                "--output-zip",
+                f"/data/{zip_filename}",
+            ],
+            volumes={str(output_path): {"bind": "/data/", "mode": "rw"}},
+            remove=True,
+            tty=True,
+        )
+    except DockerException as err:
+        msg = "Error running Nextclade CLI via Docker"
+        logger.error(
+            msg,
+            cli_version=nextclade_cli_version,
+            dataset_name=dataset_name,
+            dataset_version=dataset_version,
+            error=err,
+        )
+        raise NextcladeNotAvailableError(msg) from err
+
+    return output_file

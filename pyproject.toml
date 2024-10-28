@@ -21,6 +21,7 @@ dependencies = [
     "boto3",
     "click",
     "cloudpathlib",
+    "docker",
     "pandas",
     "polars>=1.0.0",
     "pyarrow",

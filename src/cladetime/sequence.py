@@ -2,6 +2,7 @@
 
 import lzma
 import os
+import re
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -95,6 +96,10 @@ def _get_ncov_metadata(
     metadata = response.json()
     if metadata.get("nextclade_dataset_name", "").lower() == "sars-cov-2":
         metadata["nextclade_dataset_name_full"] = "nextstrain/sars-cov-2/wuhan-hu-1/orfs"
+    nextclade_version = metadata.get("nextclade_version")
+    if nextclade_version:
+        match = re.search(r"\b\d+\.\d+\.\d+\b", nextclade_version)
+        metadata["nextclade_version_num"] = match.group(0) if match else None
 
     return metadata
 

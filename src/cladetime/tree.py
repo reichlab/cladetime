@@ -1,15 +1,17 @@
 """Class to handle Nexstrain-generated SARS-CoV-2 phylogenetic trees."""
 
+import json
+import tempfile
+import zipfile
+from pathlib import Path
 from urllib.parse import urljoin
 
 import structlog
-from requests import Session
 
 from cladetime import CladeTime
-from cladetime.exceptions import TreeNotAvailableError
-from cladetime.util.reference import _get_s3_object_url
+from cladetime.exceptions import NextcladeNotAvailableError, TreeNotAvailableError
+from cladetime.util.reference import _get_s3_object_url, get_nextclade_dataset
 from cladetime.util.sequence import _get_ncov_metadata
-from cladetime.util.session import _check_response
 
 logger = structlog.get_logger()
 
@@ -40,7 +42,7 @@ class Tree:
 
     def __repr__(self):
         cls = self.__class__.__name__
-        return f"{cls}(as_of={self.as_of.strftime('%Y-%m-%d')}, tree_updated={self.tree['meta'].get('updated')})"
+        return f"{cls}(as_of={self.as_of.strftime('%Y-%m-%d')})"
 
     def __str__(self):
         return f"Represents Nexclade reference tree data as of {self.as_of.strftime('%Y-%m-%d')}"
@@ -67,7 +69,10 @@ class Tree:
         dict : A SARS-CoV-2 reference tree in `Nextstrain Auspice JSON format
         <https://docs.nextstrain.org/projects/auspice/en/stable/releases/v2.html#new-dataset-json-format>`_.
         """
-        return self._get_reference_tree()
+        try:
+            return self._get_reference_tree()
+        except (NextcladeNotAvailableError, TreeNotAvailableError) as err:
+            raise err
 
     def _get_tree_url(self):
         """Get the URL to a Nextclade SARS-CoV-2 reference tree.
@@ -102,7 +107,7 @@ class Tree:
         # get the ncov metadata as of the CladeTime's tree_as_of date
         url_ncov_metadata = self._get_url_ncov_metadata()
 
-        if not url_ncov_metadata:
+        if url_ncov_metadata is None:
             logger.error("Reference tree not available", tree_as_of=self.clade_time.tree_as_of)
             raise TreeNotAvailableError(f"Reference tree not available for {self.clade_time.tree_as_of}")
 
@@ -125,7 +130,7 @@ class Tree:
             self.as_of,
         )[1]
 
-    def _get_reference_tree(self, session: Session | None = None) -> dict:
+    def _get_reference_tree(self) -> dict:
         """Return a reference tree used for SARS-CoV-2 clade assignments
 
         Retrieves the reference tree that was current as of
@@ -133,31 +138,31 @@ class Tree:
         `Nextstrain Auspice JSON format
         <https://docs.nextstrain.org/projects/auspice/en/stable/releases/v2.html#new-dataset-json-format>`_.
 
-        Parameters
-        ----------
-        session : requests.Session, optional
-            A requests session object to use when downloading the
-            reference tree. When not provided, a new session will
-            be created with headers that `specify Nextstrain's media types
-            <https://docs.nextstrain.org/projects/auspice/en/stable/usage/api.html#media-types>`_.
-            media types.
-
-
         Returns
         -------
         dict
             A Python dictionary that represents the reference tree.
         """
+        # get the ncov metadata as of the CladeTime's tree_as_of date
+        url_ncov_metadata = self._get_url_ncov_metadata()
+        if url_ncov_metadata is None:
+            logger.error("Reference tree not available", tree_as_of=self.as_of)
+            raise TreeNotAvailableError(f"Reference tree not available for {self.as_of}")
 
-        if not session:
-            session = Session()
-        headers = {
-            "Accept": "application/vnd.nextstrain.dataset.main+json",
-            "Content-Type": "application/vnd.nextstrain.dataset.main+json",
-        }
+        ncov_metadata = _get_ncov_metadata(url_ncov_metadata)
+        nextclade_version_num = ncov_metadata.get("nextclade_version_num", "")
+        nextclade_dataset_name = ncov_metadata.get("nextclade_dataset_name", "")
+        nextclade_dataset_version = ncov_metadata.get("nextclade_dataset_version", "")
+        if not all([nextclade_version_num, nextclade_dataset_name, nextclade_dataset_version]):
+            logger.error("Incomplete ncov metadata", tree_as_of=self._clade_time.tree_as_of)
+            raise TreeNotAvailableError(f"Incomplete ncov metadata {ncov_metadata}")
 
-        resp = session.get(self.url, headers=headers)
-        _check_response(resp)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            nextclade_dataset = get_nextclade_dataset(
+                nextclade_version_num, nextclade_dataset_name.lower(), nextclade_dataset_version, Path(tmpdir)
+            )
+            zip = zipfile.ZipFile(str(nextclade_dataset))
+            with zip.open("tree.json") as tree_file:
+                tree = json.loads(tree_file.read())
 
-        tree = resp.json()
         return tree

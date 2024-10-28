@@ -69,6 +69,8 @@ def s3_setup(s3_object_keys, ncov_metadata):
                     ncov_metadata["nextclade_dataset_version"] = f"version-{i}"
                     ncov_metadata["nextclade_dataset_name"] = "sars-cov-2"
                     ncov_metadata["nextclade_dataset_name_full"] = "data/clades"
+                    ncov_metadata["nextclade_version"] = "nexclade 3.8.2"
+                    ncov_metadata["nextclade_version_num"] = "3.8.2"
                     ncov_metadata["greeting"] = "hello from pytest and moto"
                     content = json.dumps(ncov_metadata)
                 else:

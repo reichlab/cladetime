@@ -1,4 +1,4 @@
-"""Custom exceptions for cladetime."""
+"""Custom exceptions for Cladetime."""
 
 
 class Error(Exception):
@@ -15,6 +15,10 @@ class CladeTimeInvalidURLError(Error):
 
 class CladeTimeFutureDateWarning(Warning):
     """Raised when CladeTime as_of date is in the future."""
+
+
+class NextcladeNotAvailableError(Error):
+    """Raised when Nextclade CLI is not available."""
 
 
 class TreeNotAvailableError(Error):

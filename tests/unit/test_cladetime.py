@@ -146,6 +146,7 @@ def test_cladetime_ncov_metadata(s3_setup, s3_object_keys, test_config):
 
     assert ct.ncov_metadata.get("nextclade_dataset_version") == "version-4"
     assert ct.ncov_metadata.get("nextclade_dataset_name_full") == "nextstrain/sars-cov-2/wuhan-hu-1/orfs"
+    assert ct.ncov_metadata.get("nextclade_version_num") == "3.8.2"
 
     ct.url_ncov_metadata = "https://httpstat.us/404"
     assert ct.ncov_metadata == {}
