@@ -4,7 +4,9 @@ API Reference
 .. toctree::
 
    cladetime
-   sequence
    tree
+   sequence
+   utilities
    types
+   exceptions
 

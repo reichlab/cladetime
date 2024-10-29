@@ -40,6 +40,7 @@ github_repository = "cladetime"
 
 intersphinx_mapping = {
     "nextstrain": ("https://docs.nextstrain.org/en/latest", None),
+    "nextclade": ("https://docs.nextstrain.org/projects/nextclade/en/stable/", None),
     "polars": ("https://docs.pola.rs/api/python/stable", None),
     "python": ("https://docs.python.org/3/", None),
     "sphinx": ("https://www.sphinx-doc.org/en/master/", None),
@@ -120,6 +121,7 @@ pygments_style = "friendly"
 # Show typehints as content of the function or method
 autodoc_typehints = "signature"
 autodoc_member_order = "bysource"
+
 
 # Open Graph metadata
 ogp_site_url = "https://cladetime.readthedocs.io"
