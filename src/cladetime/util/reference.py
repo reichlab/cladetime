@@ -1,5 +1,6 @@
 """Functions for retrieving and parsing SARS-CoV-2 phylogenic tree data."""
 
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Tuple
@@ -14,6 +15,25 @@ from docker.errors import DockerException
 from cladetime.exceptions import NextcladeNotAvailableError
 
 logger = structlog.get_logger()
+
+
+def _docker_installed():
+    """Check if Docker is installed and running."""
+    try:
+        subprocess.run(["docker", "--version"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(["docker", "info"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        docker_enabled = True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        msg = (
+            "WARNING: Docker is not installed on this machine, or it is not currently running.\n"
+            "Cladetime features that require Docker will not be available:\n"
+            " - retrieving reference trees\n"
+            " - performing custom clade assignments\n"
+        )
+        print(msg)
+        docker_enabled = False
+
+    return docker_enabled
 
 
 def _get_s3_object_url(bucket_name: str, object_key: str, date: datetime) -> Tuple[str, str]:

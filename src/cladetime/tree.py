@@ -10,7 +10,7 @@ import structlog
 
 from cladetime import CladeTime
 from cladetime.exceptions import NextcladeNotAvailableError, TreeNotAvailableError
-from cladetime.util.reference import _get_s3_object_url, get_nextclade_dataset
+from cladetime.util.reference import _docker_installed, _get_s3_object_url, get_nextclade_dataset
 from cladetime.util.sequence import _get_ncov_metadata
 
 logger = structlog.get_logger()
@@ -69,10 +69,13 @@ class Tree:
         dict : A SARS-CoV-2 reference tree in `Nextstrain Auspice JSON format
         <https://docs.nextstrain.org/projects/auspice/en/stable/releases/v2.html#new-dataset-json-format>`_.
         """
-        try:
-            return self._get_reference_tree()
-        except (NextcladeNotAvailableError, TreeNotAvailableError) as err:
-            raise err
+        if _docker_installed():
+            try:
+                return self._get_reference_tree()
+            except (NextcladeNotAvailableError, TreeNotAvailableError) as err:
+                raise err
+        else:
+            return {}
 
     def _get_tree_url(self):
         """Get the URL to a Nextclade SARS-CoV-2 reference tree.

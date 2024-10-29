@@ -2,15 +2,6 @@ from datetime import datetime, timezone
 
 from cladetime.util.reference import _get_s3_object_url
 
-# @mock.patch("subprocess.run")
-# def test_get_nextclade_dataset(tmp_path):
-#     dataset_path = get_nextclade_dataset("2021-09-01", tmp_path)
-
-#     # the dataset_path being returned should contain the correct nextclade
-#     # datasetset version, as determined by the as_of_date being passed
-#     # (returned version is temporarily hard-coded until Nextstrain provides the info we need)
-#     assert "2024-07-17--12-57-03Z" in str(dataset_path)
-
 
 def test__get_s3_object_url(s3_setup):
     s3_client, bucket_name, s3_object_keys = s3_setup
