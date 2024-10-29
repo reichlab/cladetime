@@ -13,11 +13,16 @@ jobs:
       - name: Checkout 🛎️
         uses: actions/checkout@v4
 
-      - name: Build Docker image 🐳
-        run: |
-          docker build -t cladetime .
+      - name: Set up Python 🐍
+        uses: actions/setup-python@v5
+        with:
+          cache: pip
 
-      - name: run integration tests 🧪
+      - name: Install dependencies 📦️
         run: |
-          docker run --entrypoint /bin/bash cladetime \
-          -c "pytest -k integration"
+          pip install --upgrade pip
+          pip install -r requirements/requirements-dev.txt
+          pip install -e .
+
+      - name: Run integration tests 🧪
+        run: pytest -k integration

@@ -11,16 +11,21 @@ jobs:
       - name: Checkout 🛎️
         uses: actions/checkout@v4
 
-      - name: Build Docker image 🐳
-        run: |
-          docker build -t cladetime .
+      - name: Set up Python 🐍
+        uses: actions/setup-python@v5
+        with:
+          cache: pip
 
-      - name: lint 🧹
+      - name: Install dependencies 📦️
         run: |
-          docker run --entrypoint /bin/bash cladetime \
-          -c "ruff check"
+          pip install --upgrade pip
+          pip install -r requirements/requirements-dev.txt
+          pip install -e .
 
-      - name: run unit tests 🧪
+      - name: Lint 🧹
+        run: ruff check
+
+      - name: Run unit tests 🧪
         run: |
-          docker run --entrypoint /bin/bash cladetime \
-          -c "pytest -k unit"
+          pytest -k unit
+
