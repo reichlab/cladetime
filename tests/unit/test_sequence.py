@@ -2,10 +2,7 @@ from pathlib import Path
 
 import polars as pl
 import pytest
-from cladetime.sequence import (
-    filter_sequence_metadata,
-    get_covid_genome_metadata,
-)
+from cladetime.sequence import filter_sequence_metadata, get_covid_genome_metadata, get_sequence_set
 from cladetime.types import StateFormat
 
 
@@ -155,3 +152,25 @@ def test_filter_covid_genome_metadata_state_fips():
 
     locations = set(lf_filtered["location"].to_list())
     assert locations == {"11", "25", "72"}
+
+
+def test_get_sequence_set():
+    metadata = {
+        "genbank_accession": ["A1", "A2", "A2", "A4"],
+        "country": ["USA", "Canada", "Mexico", "Brazil"],
+        "location": ["Earth", "Earth", "Earth", "Earth"],
+    }
+    expected_set = {"A1", "A2", "A4"}
+
+    lf = pl.LazyFrame(metadata)
+    seq_set = get_sequence_set(lf)
+    assert seq_set == expected_set
+
+    df = lf.collect()
+    seq_set = get_sequence_set(df)
+    assert seq_set == expected_set
+
+    empty_lf = pl.LazyFrame([])
+    with pytest.raises(ValueError):
+        seq_set = get_sequence_set(empty_lf)
+        assert len(seq_set) == 0

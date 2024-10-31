@@ -250,6 +250,38 @@ def get_clade_counts(filtered_metadata: pl.LazyFrame) -> pl.LazyFrame:
     return counts
 
 
+def get_sequence_set(sequence_metadata: pl.DataFrame | pl.LazyFrame) -> set:
+    """Return sequence IDs for a specified set of Nextstrain sequence metadata.
+
+    For a given input of GenBank-based SARS-Cov-2 sequence metadata (as
+    published by Nextstrain), return a set of GenBank accession numbers.
+
+    Parameters
+    ----------
+    sequence_metadata : :class:`polars.DataFrame` or :class:`polars.LazyFrame`
+
+    Returns
+    -------
+    list
+        A set of GenBank accession numbers
+
+    Raises
+    ------
+    ValueError
+        If the sequence metadata does not contain a genbank_accession column
+    """
+    metadata_columns = sequence_metadata.collect_schema().names()
+    if "genbank_accession" not in metadata_columns:
+        logger.error("Missing column from sequence_metadata", column="genbank_accession")
+        raise ValueError("Sequence metadata does not contain a genbank_accession column.")
+    sequences = sequence_metadata.select("genbank_accession").unique()
+    if isinstance(sequence_metadata, pl.LazyFrame):
+        sequences = sequences.collect()  # type: ignore
+    seq_set = set(sequences["genbank_accession"].to_list())  # type: ignore
+
+    return seq_set
+
+
 def parse_sequence_assignments(df_assignments: pl.DataFrame) -> pl.DataFrame:
     """Parse out the sequence number from the seqName column returned by the clade assignment tool."""
 
