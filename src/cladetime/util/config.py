@@ -17,7 +17,7 @@ class Config:
     nextstrain_ncov_bucket = "nextstrain-data"
     nextstrain_ncov_metadata_key = "files/ncov/open/metadata_version.json"
     nextstrain_genome_metadata_key = "files/ncov/open/metadata.tsv.zst"
-    nextstrain_genome_sequence_key = "files/ncov/open/sequences.fasta.zst"
+    nextstrain_genome_sequence_key = "files/ncov/open/sequences.fasta.xz"
     nextclade_data_url = "https://data.clades.nextstrain.org"
     nextclade_data_url_version = "v3"
     nextclade_base_url: str = "https://nextstrain.org/nextclade/sars-cov-2"

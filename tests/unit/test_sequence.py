@@ -1,8 +1,15 @@
+import lzma
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import polars as pl
 import pytest
-from cladetime.sequence import filter_sequence_metadata, get_covid_genome_metadata, get_sequence_set
+from cladetime.sequence import (
+    filter_sequence_data,
+    filter_sequence_metadata,
+    get_covid_genome_metadata,
+    get_sequence_set,
+)
 from cladetime.types import StateFormat
 
 
@@ -174,3 +181,45 @@ def test_get_sequence_set():
     with pytest.raises(ValueError):
         seq_set = get_sequence_set(empty_lf)
         assert len(seq_set) == 0
+
+
+def test_filter_sequence_data(test_file_path, tmpdir):
+    test_sequence_file = test_file_path / "test_sequence.xz"
+    test_sequence_set = {
+        "USA/MD-MDH-1820/2021",
+        "USA/CA-CDPH-A3000000297958/2023",
+        "USA/WV064580/2020",
+        "USA/PA-CDC-LC1096774/2024",
+        "STARFLEET/DS9-DS9-001/2024",
+    }
+    mock_download = MagicMock(return_value=test_sequence_file, name="_download_from_url_mock")
+    with patch("cladetime.sequence._download_from_url", mock_download):
+        filtered_sequence_file, seq_total, seq_filtered = filter_sequence_data(
+            test_sequence_set, "http://thisismocked.com", tmpdir
+        )
+
+    assert filtered_sequence_file.exists()
+    assert seq_filtered == 4
+
+    # test with empty sequence set
+    test_sequence_set = {}
+    mock_download = MagicMock(return_value=test_sequence_file, name="_download_from_url_mock")
+    with patch("cladetime.sequence._download_from_url", mock_download):
+        filtered_sequence_file, seq_total, seq_filtered = filter_sequence_data(
+            test_sequence_set, "http://thisismocked.com", tmpdir
+        )
+    assert seq_filtered == 0
+
+
+def test_filter_sequence_data_empty_fasta(tmpdir):
+    # sequence file is empty
+    test_sequence_set = {"A", "B", "C", "D"}
+    empty_sequence_file = tmpdir / "empty_sequence_file.xz"
+    with lzma.open(empty_sequence_file, "wb"):
+        pass
+    mock_download = MagicMock(return_value=empty_sequence_file, name="_download_from_url_mock")
+    with patch("cladetime.sequence._download_from_url", mock_download):
+        filtered_sequence_file, seq_total, seq_filtered = filter_sequence_data(
+            test_sequence_set, "http://thisismocked.com", tmpdir
+        )
+    assert seq_filtered == 0
