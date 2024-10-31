@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 
 import boto3
@@ -6,6 +7,15 @@ import requests
 from cladetime.util.config import Config
 from freezegun import freeze_time
 from moto import mock_aws
+
+
+@pytest.fixture
+def ncov_metadata():
+    return {
+        "schema_version": "v1",
+        "nextclade_dataset_name": "SARS-CoV-2",
+        "nextclade_dataset_version": "",
+    }
 
 
 @pytest.fixture
@@ -26,7 +36,7 @@ def mock_session(mocker):
 
 
 @pytest.fixture
-def s3_setup(s3_object_keys):
+def s3_setup(s3_object_keys, ncov_metadata):
     """
     Setup mock S3 bucket with versioned objects that represent testing files for
     sequence data, sequence metadata, and ncov pipeline metadata.
@@ -51,22 +61,26 @@ def s3_setup(s3_object_keys):
             },
         )
 
-        for file, object_key in s3_object_keys.items():
-            # Upload multiple versions of the object
-            versions = [
-                ("2023-01-01 03:05:01", f"{file} version 1"),
-                ("2023-02-05 03:33:06", f"{file} version 2"),
-                ("2023-02-05 14:33:06", f"{file} version 3"),
-                ("2023-03-22 22:55:12", f"{file} version 4"),
-            ]
-
-            for version_date, content in versions:
+        # Add versioned sequence, sequence metadata, and ncov metadata test objects
+        versions = ["2023-01-01 03:05:01", "2023-02-05 03:33:06", "2023-02-05 14:33:06", "2023-03-22 22:55:12"]
+        for i, version in enumerate(versions, start=1):
+            for key, value in s3_object_keys.items():
+                if key == "ncov_metadata":
+                    ncov_metadata["nextclade_dataset_version"] = f"version-{i}"
+                    ncov_metadata["nextclade_dataset_name"] = "sars-cov-2"
+                    ncov_metadata["nextclade_dataset_name_full"] = "data/clades"
+                    ncov_metadata["nextclade_version"] = "nexclade 3.8.2"
+                    ncov_metadata["nextclade_version_num"] = "3.8.2"
+                    ncov_metadata["greeting"] = "hello from pytest and moto"
+                    content = json.dumps(ncov_metadata)
+                else:
+                    content = f"{value} version {i}"
                 # use freezegun to override system date, which in
                 # turn sets S3 object version LastModified date
-                with freeze_time(version_date):
+                with freeze_time(version):
                     s3_client.put_object(
                         Bucket=bucket_name,
-                        Key=object_key,
+                        Key=value,
                         Body=content,
                     )
 

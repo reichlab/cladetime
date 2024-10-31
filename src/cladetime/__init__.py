@@ -4,11 +4,14 @@ import sys
 import structlog
 
 from cladetime.cladetime import CladeTime
+from cladetime.tree import Tree
+from cladetime.util.reference import _docker_installed
 
-__all__ = ["CladeTime"]
+__all__ = ["CladeTime", "Tree"]
 
 # tells us package to consider DC a state
 os.environ["DC_STATEHOOD"] = "1"
+os.environ["DOCKER_ENABLED"] = str(_docker_installed())
 
 
 def setup_logging():

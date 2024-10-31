@@ -129,12 +129,26 @@ def test_cladetime_urls(s3_setup, test_config, sequence_as_of, expected_content)
                 assert ct.url_ncov_metadata is not None
 
 
-def test_cladetime_ncov_metadata():
-    ct = CladeTime()
-    ct.url_ncov_metadata = "https://httpstat.us/200"
-    assert ct.ncov_metadata == {"code": 200, "description": "OK"}
+def test_cladetime_ncov_metadata(s3_setup, s3_object_keys, test_config):
+    s3_client, bucket_name, s3_object_keys = s3_setup
+    mock = MagicMock(return_value=test_config, name="CladeTime._get_config_mock")
+    with patch("cladetime.CladeTime._get_config", mock):
+        with freeze_time("2024-09-02 00:00:00"):
+            ct = CladeTime()
+            version_id = parse_qs(urlparse(ct.url_ncov_metadata).query)["versionId"][0]
+            # Generate a presigned URL for the specific version of the object
+            presigned_url = s3_client.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": bucket_name, "Key": s3_object_keys["ncov_metadata"], "VersionId": version_id},
+                ExpiresIn=3600,
+            )
+            ct.url_ncov_metadata = presigned_url
 
-    ct.url_ncov_metadata = "https://httpstat.us/504"
+    assert ct.ncov_metadata.get("nextclade_dataset_version") == "version-4"
+    assert ct.ncov_metadata.get("nextclade_dataset_name_full") == "nextstrain/sars-cov-2/wuhan-hu-1/orfs"
+    assert ct.ncov_metadata.get("nextclade_version_num") == "3.8.2"
+
+    ct.url_ncov_metadata = "https://httpstat.us/404"
     assert ct.ncov_metadata == {}
 
 

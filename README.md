@@ -1,218 +1,117 @@
 # Cladetime
 
-Cladetime is a wrapper around existing tools for downloading and working with virus genome sequences:
-
-* The [NCBI Datasets API](https://www.ncbi.nlm.nih.gov/datasets/docs/v2/reference-docs/rest-api/) provided by the National Institutes of Healh.
-* The [Nexclade command line interface (CLI)](https://docs.nextstrain.org/projects/nextclade/en/stable/user/nextclade-cli/index.html) provided by [Nextstrain](https://docs.nextstrain.org/en/latest/).
-
-This package was developed to provide data required for the [COVID-19 Variant Nowcast hub](https://github.com/reichlab/variant-nowcast-hub), where modelers and teams forecast the daily proportions of COVID-19 variants in US states.
-
-We are releasing `cladetime` as a standalone package for use by others who may find the functionality useful.
-
+Cladetime is a wrapper around Nextstrain datasets and tools for downloading and working with SARS-CoV-2 virus genome sequence data at
+a specific point in time.
 
 ## Usage
 
 This library contains two types of components:
 
-1. Scripts and CLI tools for use in database pipelinnes required by the Variant Nowcast Hub
-(these are in development and not documented here).
+1. Scripts and CLI tools for use in database pipelines required by the [Variant Nowcast Hub](https://github.com/reichlab/variant-nowcast-hub) (these are in development and not documented here).
 
-2. A CladeTime class for interactively working with Sars-Cov-2 sequence and clade data as of a specific date.
+2. Python classes for interactively working with SARS-CoV-2 sequence data, metadata, and clade assignments.
 
-### Sample CladeTime usage
+## Getting started with Cladetime
 
-To use the interactive `CladeTime` object, install this package:
+To use `cladetime` interactively, install the package from GitHub:
 
 ```bash
-    pip install git+https://github.com/reichlab/cladetime.git
+pip install git+https://github.com/reichlab/cladetime.git
 ```
 
-Once the package is installed, you can instantiate a `CladeTime` object in a Python console
-(see some examples below).
+Below are a few examples of using Cladetime in a Python interpreter.
+See the [project documentation](https://cladetime.readthedocs.io) for more details.
 
-#### Work with the latest Nextstrain Sars-Cov-2 sequence metadata and clade assignments
+### Time traveling with Cladetime
+
+Cladetime knows where to find past versions of Nextstrain's SARS-CoV-2 sequence data and metadata files.
+These are [intermediate files produced by Nextstrain's daily workflow](https://docs.nextstrain.org/projects/ncov/en/latest/reference/remote_inputs.html#remote-inputs-open-files). Cladetime uses the full set of open Genbank data.
 
 ```python
-In [1]: from cladetime import CladeTime
+>>> from cladetime import CladeTime
 
-In [2]: ct = CladeTime()
+# Create a CladeTime object for any date after May 2023
+# (for the most recent data, remove the `sequence_as_of` parameter)
+>>> ct = CladeTime(sequence_as_of="2024-10-15")
 
-# Return a Polars LazyFrame with the sequence metadata.
-In [4]: import polars as pl
+# Based on the sequence_as_of date (above), Cladetime provides URLs to the corresponding
+# SARS-CoV-2 past sequence data and metadata files
+>>> ct.url_sequence
+'https://nextstrain-data.s3.amazonaws.com/files/ncov/open/sequences.fasta.zst?versionId=8Zszokay3LRP5Zec_cviQ8oXkx8cJlwq'
+>>> ct.url_sequence_metadata
+'https://nextstrain-data.s3.amazonaws.com/files/ncov/open/metadata.tsv.zst?versionId=U4aIlh5HI1XuDLPW7q9WTZad6gXwARqT'
+```
 
-In [5]: lf = ct.sequence_metadata
+### Interacting with sequence metadata
+
+The [metadata provided by Nextstrain](https://docs.nextstrain.org/projects/ncov/en/latest/reference/metadata-fields.html)
+contains descriptive information about SARS-CoV-2 sequences. Cladetime provides a Polars-based interface to work with
+this metadata directly, without downloading it first.
+
+```python
+>>> from datetime import datetime
+>>> import polars as pl
+>>> from cladetime import CladeTime
+
+>>> ct = CladeTime()
+>>> metadata = ct.sequence_metadata  # Returns a Polars LazyFrame
 
 # From there, you can use Polars to manipulate the data as needed
-In [6]: filtered_sequence_metadata = (
-    lf
-    .select(["country", "division", "date", "host", "clade_nextstrain"])
-    .rename({"clade_nextstrain": "clade", "division": "location"})
-    .filter(
-        pl.col("country") == "USA",
-        pl.col("host") == "Homo sapiens"
-    )
-).collect()
+>>> filtered_sequence_metadata = (
+...     metadata
+...     .select(["country", "division", "date", "host", "clade_nextstrain"])
+...     .rename({"division": "location"})
+...     .cast({"date": pl.Date}, strict=False)
+...     .filter(
+...         pl.col("country") == "USA",
+...         pl.col("date") >= pl.lit(datetime(2024, 9, 1)),
+...         pl.col("date") < pl.lit(datetime(2024, 11, 1)),
+...     )
+...     .group_by(["date", "clade_nextstrain"]).len()
+... ).collect(streaming=True)
 
-In [7]: filtered_sequence_metadata.head()
-Out[7]:
-shape: (5, 5)
-┌─────────┬──────────┬────────────┬──────────────┬───────┐
-│ country ┆ location ┆ date       ┆ host         ┆ clade │
-│ ---     ┆ ---      ┆ ---        ┆ ---          ┆ ---   │
-│ str     ┆ str      ┆ str        ┆ str          ┆ str   │
-╞═════════╪══════════╪════════════╪══════════════╪═══════╡
-│ USA     ┆ Alabama  ┆ 2022-07-07 ┆ Homo sapiens ┆ 22A   │
-│ USA     ┆ Arizona  ┆ 2022-07-02 ┆ Homo sapiens ┆ 22B   │
-│ USA     ┆ Arizona  ┆ 2022-07-19 ┆ Homo sapiens ┆ 22B   │
-│ USA     ┆ Arizona  ┆ 2022-07-15 ┆ Homo sapiens ┆ 22B   │
-│ USA     ┆ Arizona  ┆ 2022-07-20 ┆ Homo sapiens ┆ 22B   │
-└─────────┴──────────┴────────────┴──────────────┴───────┘
+>>> filtered_sequence_metadata.head(5)
+shape: (5, 3)
+┌────────────┬──────────────────┬─────┐
+│ date       ┆ clade_nextstrain ┆ len │
+│ ---        ┆ ---              ┆ --- │
+│ date       ┆ str              ┆ u32 │
+╞════════════╪══════════════════╪═════╡
+│ 2024-09-05 ┆ 24B              ┆ 42  │
+│ 2024-09-26 ┆ 24E              ┆ 73  │
+│ 2024-09-03 ┆ 24A              ┆ 100 │
+│ 2024-09-24 ┆ 24F              ┆ 17  │
+│ 2024-09-25 ┆ 24B              ┆ 12  │
+└────────────┴──────────────────┴─────┘
 
-# Pandas users can create a Pandas dataframe with sequence metadata
-
-In [8]: pandas = lf.collect().to_pandas()
-
-# Metadata from the pipeline that produced the above sequence_data
-In [9]: ct.ncov_metadata
-Out[9]:
-{'schema_version': 'v1',
- 'nextclade_version': 'nextclade 3.8.2',
- 'nextclade_dataset_name': 'SARS-CoV-2',
- 'nextclade_dataset_version': '2024-09-25--21-50-30Z',
- 'nextclade_tsv_sha256sum': 'fbe579554e925e4dfaf74cfb4e72b52c702e671f0f0374d896f1e30ae4fe5566',
- 'metadata_tsv_sha256sum': '5a4fd84a5cd3c4ead9cf730d4df10b8734898c6c3e0cae1c8c0acf432325d22c'}
- ```
-
- #### Work with point-in-time Nextstrain Sars-Cov-2 sequence metadata and clade assignments
-
- ```python
-In [10]: from cladetime import CladeTime
-
-In [11]: ct = CladeTime(sequence_as_of="2024-08-31", tree_as_of="2024-08-01")
-
-# URL for the corresponding Nextstrain Sars-Cov-2 sequence metadata as it existing on 2024-08-31
-In [12]: ct.url_sequence_metadata
-Out[12]: 'https://nextstrain-data.s3.amazonaws.com/files/ncov/open/metadata.tsv.zst?versionId=1SZMfjWxXjNy530F6L7MfyflUCbue.JD'
-
-# Metadata for the pipeline run that produced the above file
-In [13]: ct.ncov_metadata
-Out[13]: {'schema_version': 'v1',
- 'nextclade_version': 'nextclade 3.8.2',
- 'nextclade_dataset_name': 'SARS-CoV-2',
- 'nextclade_dataset_version': '2024-07-17--12-57-03Z',
- 'nextclade_tsv_sha256sum': 'fd30f0b258f73fdcf5acefe77937ebe7d88862093bb4aaf3a7e935650ccea060',
- 'metadata_tsv_sha256sum': '898451d9750128b4f90253d91cef0092e51965e879536e80aa6598de0fd4af29'}
+# Pandas users can export Polars dataframes
+>>> pandas_df = filtered_sequence_metadata.to_pandas()
 ```
 
+### Reference trees and clade assignments
 
-## Local Machine Setup
+Cladetime also allows you to access SARS-CoV-2 reference trees from past dates (back to August 1, 2024).
+This is useful for assigning sequences to clades based on a specific reference tree.
 
-The sections below provide instructions for setting up this project on your local machine.
+```python
+>>> from cladetime import CladeTime, Tree
 
-**Prerequisites**
+>>> ct = CladeTime(tree_as_of="2024-09-01")
+>>> ref_tree = Tree(ct)
 
-Before setting up the project:
+# The tree object provides a URL to the reference tree as
+# it existed on the "tree_as_of" date
+>>> ref_tree.url
+'https://data.clades.nextstrain.org/v3/nextstrain/sars-cov-2/wuhan-hu-1/orfs/2024-07-17--12-57-03Z/tree.json'
 
-- Your machine will need to have an installed version of Python that meets the `requires-python` constraint in [pyproject.toml](pyproject.toml)
-- That version of Python should be set as your current Python interpreter (if you don't already have a preferred Python workflow, [pyenv](https://github.com/pyenv/pyenv) is good tool for managing Python versions on your local machine).
-- You will need to install two CLI tools used by the pipeline, and ensure they're available in your PATH:
-    - [dataformat](https://www.ncbi.nlm.nih.gov/datasets/docs/v2/download-and-install/), to format sequence metadata
-    - [Nextclade](https://docs.nextstrain.org/projects/nextclade/en/stable/user/nextclade-cli/installation/index.html), to assign clades to sequences
+# It also contains the tree itself, in the form of a Python dictionary
+>>> ref_tree.tree.keys()
+dict_keys(['version', 'meta', 'tree', 'root_sequence'])
 
-In addition, if you're planning to make code changes that require adding or removing project dependencies, you'll need `pip-tools` installed on your machine. ([`pipx`](https://github.com/pypa/pipx) is a handy way to install python packages in a way that makes them available all the time, regardless of whatever virtual environment is currently activated.)
-
-**Setup**
-
-Follow the directions below to set this project up on your local machine.
-
-1. Clone this repository and change into the project's high-level directory:
-
-    ```bash
-    cd cladetime
-    ```
-
-2. Create a Python virtual environment:
-
-    ```bash
-    python -m venv .venv
-    ```
-
-    **Note:** the resulting virtual environment will use whatever Python interpreter was active when you ran the command
-
-3. Activate the virtual environment:
-
-    ```bash
-    source .venv/bin/activate
-    ```
-
-    **Note:** the command above is for Unix-based systems. If you're using Windows, the command is:
-
-    ```bash
-    .venv\Scripts\activate
-    ```
-
-4. Install the project dependencies. The following command can also be used to update dependencies after pulling upstream code changes:
-
-    ```bash
-
-    pip install -r requirements/requirements-dev.txt && pip install -e .
-    ```
-
-### Running the test suite
-
-To run the unit tests:
-
-```bash
-pytest -k unit
+>>> print(ref_tree.tree['meta']['title'], ref_tree.tree['meta']['updated'])
+SARS-CoV-2 phylogeny 2024-07-17
 ```
 
-To run the full test suite, including an integration test that runs the pipeline end-to-end:
+### Clade assignments with past sequences and reference trees
 
-```bash
-pytest
-```
-
-### Adding new dependencies
-
-At a high-level, this is the process for adding (or removing) a project dependency:
-
-- add/remove the dependency in `pyproject.toml`
-- use [`pip-tools`](https://github.com/jazzband/pip-tools) to read the dependencies in `pyproject.toml` and output detailed requirements files
-
-To add a new dependency:
-
-1. Make sure `pip-tools` is installed and available to your virtual environment (if you want `pip-tools` to be available across all virtual environments on your machine, you can install it using [`pipx`](https://pipx.pypa.io/stable/)).
-
-    ```bash
-    pip install pip-tools
-    ```
-
-2. Add dependency to the `dependencies` section `pyproject.toml` (if it's a dev dependency,
-add it to the `dev` section of `[project.optional-dependencies]`).
-
-3. Regenerate the `requirements.txt` file (if you've only added a dev dependency, you can skip this step)
-    ```bash
-    pip-compile -o requirements/requirements.txt pyproject.toml
-    ```
-
-4. Regenerate the `requirements-dev.txt` file (even if you haven't added a dev dependency):
-    ```bash
-    pip-compile --extra dev -o requirements/requirements-dev.txt pyproject.toml
-    ```
-
-## Running the code
-
-Set up the project as described above and make sure the virtual environment is activated. The code that downloads the Genbank
-sequences and assigns them to clades is a command-line tool called `assign_clades`.
-
-To see the options and other help information:
-
-```bash
-assign_clades --help
-```
-
-To download Genbank sequences that have been released since 2024-08-02 and assign clades to them using the SARS-Cov-2 reference tree as it looked on 2024-07-13:
-
-```bash
-assign_clades --sequence-released-since-date 2024-08-02 --reference-tree-date 2024-07-13
-```
+Coming soon!

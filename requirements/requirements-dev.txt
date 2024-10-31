@@ -34,6 +34,8 @@ coverage==7.5.3
     # via cladetime (pyproject.toml)
 cryptography==43.0.1
     # via moto
+docker==7.1.0
+    # via cladetime (pyproject.toml)
 docutils==0.16
     # via awscli
 freezegun==1.5.1
@@ -107,6 +109,7 @@ pyyaml==6.0.1
 requests==2.32.3
     # via
     #   cladetime (pyproject.toml)
+    #   docker
     #   moto
     #   responses
 responses==0.25.3
@@ -149,6 +152,7 @@ urllib3==2.2.1
     # via
     #   cladetime (pyproject.toml)
     #   botocore
+    #   docker
     #   requests
     #   responses
     #   types-requests
