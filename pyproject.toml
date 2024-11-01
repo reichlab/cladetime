@@ -18,6 +18,7 @@ classifiers = [
 
 dependencies = [
     "awscli>=1.32.92",
+    "biopython",
     "boto3",
     "click",
     "cloudpathlib",

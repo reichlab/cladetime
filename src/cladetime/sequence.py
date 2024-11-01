@@ -9,6 +9,8 @@ from urllib.parse import urlparse
 import polars as pl
 import structlog
 import us
+from Bio import SeqIO
+from Bio.SeqIO import FastaIO
 from requests import Session
 
 from cladetime.types import StateFormat
@@ -250,6 +252,38 @@ def get_clade_counts(filtered_metadata: pl.LazyFrame) -> pl.LazyFrame:
     return counts
 
 
+def get_sequence_set(sequence_metadata: pl.DataFrame | pl.LazyFrame) -> set:
+    """Return sequence IDs for a specified set of Nextstrain sequence metadata.
+
+    For a given input of GenBank-based SARS-Cov-2 sequence metadata (as
+    published by Nextstrain), return a set of GenBank accession numbers.
+
+    Parameters
+    ----------
+    sequence_metadata : :class:`polars.DataFrame` or :class:`polars.LazyFrame`
+
+    Returns
+    -------
+    set
+        A set of GenBank accession numbers
+
+    Raises
+    ------
+    ValueError
+        If the sequence metadata does not contain a genbank_accession column
+    """
+    metadata_columns = sequence_metadata.collect_schema().names()
+    if "genbank_accession" not in metadata_columns:
+        logger.error("Missing column from sequence_metadata", column="genbank_accession")
+        raise ValueError("Sequence metadata does not contain a genbank_accession column.")
+    sequences = sequence_metadata.select("genbank_accession").unique()
+    if isinstance(sequence_metadata, pl.LazyFrame):
+        sequences = sequences.collect()  # type: ignore
+    seq_set = set(sequences["genbank_accession"].to_list())  # type: ignore
+
+    return seq_set
+
+
 def parse_sequence_assignments(df_assignments: pl.DataFrame) -> pl.DataFrame:
     """Parse out the sequence number from the seqName column returned by the clade assignment tool."""
 
@@ -266,3 +300,61 @@ def parse_sequence_assignments(df_assignments: pl.DataFrame) -> pl.DataFrame:
     df_assignments = df_assignments.insert_column(1, seq)  # type: ignore
 
     return df_assignments
+
+
+def filter_sequence_data(sequence_ids: set, url_sequence: str, output_path: Path) -> tuple[Path, int, int]:
+    """Filter a fasta file against a specific set of sequences.
+
+    Download a sequence file (in FASTA format) from Nexstrain, filter
+    it against a set of specific sequence ids (GenBank accession numbers),
+    and write the filtered sequences to a new file.
+
+    Parameters
+    ----------
+    sequence_ids : set
+        GenBank accession numbers used to filter the sequence file
+    url_sequence : str
+        The URL to a file of SARS-CoV-2 GenBank sequences published by Nexstrain.
+        The file is should be in .fasta format using the lzma compression
+        method (e.g., "https://data.nextstrain.org/files/ncov/open/100k/sequences.fasta.xz")
+    output_path : pathlib.Path
+        Where to save the filtered sequence file
+
+    Returns
+    -------
+    Tuple[pathlib.Path, int, int]
+        A tuple containing the full path to the filtered sequence file, the
+        number of original sequences, and the number of filtered sequences
+    """
+    session = _get_session()
+
+    # FIXME: validate url_sequence (should be in filename.fasta.xz format)
+    # alternately, we could expand this function to handle other types
+    # of compression schemas (ZSTD) or none at all
+
+    # download the original sequence file
+    logger.info("Starting sequence file download", url=url_sequence)
+    sequence_file = _download_from_url(session, url_sequence, output_path)
+    logger.info("Sequence file saved", path=sequence_file)
+
+    filtered_sequence_file = output_path / "sequences_filtered.fasta"
+
+    # create a second fasta file with only those sequences in the metadata
+    logger.info("Starting sequence filter", sequence_file=sequence_file, filtered_sequence_file=filtered_sequence_file)
+    sequence_count = 0
+    sequence_match_count = 0
+    with open(filtered_sequence_file, "w") as fasta_output:
+        with lzma.open(sequence_file, mode="rt") as handle:
+            for record in FastaIO.FastaIterator(handle):
+                sequence_count += 1
+                if record.id in sequence_ids:
+                    sequence_match_count += 1
+                    SeqIO.write(record, fasta_output, "fasta")
+    logger.info(
+        "Filtered sequence file saved",
+        num_sequences=sequence_count,
+        num_matched_sequences=sequence_match_count,
+        path=filtered_sequence_file,
+    )
+
+    return filtered_sequence_file, sequence_count, sequence_match_count

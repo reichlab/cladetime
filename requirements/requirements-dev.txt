@@ -2,6 +2,8 @@
 #    uv pip compile pyproject.toml --extra dev -o requirements/requirements-dev.txt
 awscli==1.32.116
     # via cladetime (pyproject.toml)
+biopython==1.84
+    # via cladetime (pyproject.toml)
 boto3==1.34.116
     # via
     #   cladetime (pyproject.toml)
@@ -70,6 +72,7 @@ mypy-extensions==1.0.0
     # via mypy
 numpy==1.26.4
     # via
+    #   biopython
     #   pandas
     #   pyarrow
 packaging==24.0
