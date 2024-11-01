@@ -7,8 +7,8 @@ docker_enabled = _docker_installed()
 
 
 @pytest.mark.skipif(not docker_enabled, reason="Docker is not installed")
-def test_get_nextclade_dataset(tmpdir):
-    dataset_path = get_nextclade_dataset("latest", "sars-cov-2", "2024-07-17--12-57-03Z", tmpdir)
+def test_get_nextclade_dataset(tmp_path):
+    dataset_path = get_nextclade_dataset("latest", "sars-cov-2", "2024-07-17--12-57-03Z", tmp_path)
 
     assert "2024-07-17--12-57-03Z" in str(dataset_path)
 
