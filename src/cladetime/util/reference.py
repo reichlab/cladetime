@@ -136,6 +136,7 @@ def get_nextclade_dataset(
     """
     zip_filename = f"nextclade_{dataset_name}_{dataset_version}.zip"
     output_file = output_path / zip_filename
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
     command = [
         "nextclade",
