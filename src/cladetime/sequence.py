@@ -333,7 +333,7 @@ def filter_sequence_data(sequence_ids: set, url_sequence: str, output_path: Path
     # of compression schemas (ZSTD) or none at all
 
     # download the original sequence file
-    logger.info("Staring sequence file download", url=url_sequence)
+    logger.info("Starting sequence file download", url=url_sequence)
     sequence_file = _download_from_url(session, url_sequence, output_path)
     logger.info("Sequence file saved", path=sequence_file)
 

@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import polars as pl
 import pytest
+from Bio import SeqIO
 from cladetime.sequence import (
     filter_sequence_data,
     filter_sequence_metadata,
@@ -180,7 +181,6 @@ def test_get_sequence_set():
     empty_lf = pl.LazyFrame([])
     with pytest.raises(ValueError):
         seq_set = get_sequence_set(empty_lf)
-        assert len(seq_set) == 0
 
 
 def test_filter_sequence_data(test_file_path, tmpdir):
@@ -198,8 +198,14 @@ def test_filter_sequence_data(test_file_path, tmpdir):
             test_sequence_set, "http://thisismocked.com", tmpdir
         )
 
-    assert filtered_sequence_file.exists()
     assert seq_filtered == 4
+
+    test_sequence_set.remove("STARFLEET/DS9-DS9-001/2024")
+    actual_headers = []
+    with open(filtered_sequence_file, "r") as fasta_test:
+        for record in SeqIO.parse(fasta_test, "fasta"):
+            actual_headers.append(record.description)
+    assert set(actual_headers) == test_sequence_set
 
     # test with empty sequence set
     test_sequence_set = {}
