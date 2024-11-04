@@ -39,8 +39,10 @@ def test_get_clade_assignments(test_file_path, tmp_path):
 
     sequence_file = test_file_path / "test_sequences.fasta"
     nextclade_dataset = test_file_path / "test_nextclade_dataset.zip"
+    # _get_clade_assignments should create the output directory if it doesn't exist
+    output_path = tmp_path / "clade_assignments"
 
-    assignment_file = _get_clade_assignments("latest", sequence_file, nextclade_dataset, tmp_path)
+    assignment_file = _get_clade_assignments("latest", sequence_file, nextclade_dataset, output_path)
     assignment_df = pl.read_csv(assignment_file, separator=";").select(
         ["seqName", "clade", "clade_nextstrain", "Nextclade_pango"]
     )
@@ -49,3 +51,19 @@ def test_get_clade_assignments(test_file_path, tmp_path):
     assigned_sequence_set = set(assignment_df["seqName"].unique().to_list())
     assert test_sequence_set == assigned_sequence_set
     assert assignment_df["clade"].is_null().any() is False
+
+
+@pytest.mark.skipif(not docker_enabled, reason="Docker is not installed")
+def test_get_clade_assignments_no_matches(test_file_path, tmp_path):
+    sequence_file = test_file_path / "test_sequences_fake.fasta"
+    nextclade_dataset = test_file_path / "test_nextclade_dataset.zip"
+    # _get_clade_assignments should create the output directory if it doesn't exist
+    output_path = tmp_path / "clade_assignments"
+
+    assignment_file = _get_clade_assignments("latest", sequence_file, nextclade_dataset, output_path)
+    assignment_df = pl.read_csv(assignment_file, separator=";").select(
+        ["seqName", "clade", "clade_nextstrain", "Nextclade_pango"]
+    )
+
+    assert len(assignment_df) == 4
+    assert assignment_df["clade"].is_null().all()
