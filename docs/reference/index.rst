@@ -6,7 +6,6 @@ API Reference
    cladetime
    tree
    sequence
-   utilities
    types
    exceptions
 

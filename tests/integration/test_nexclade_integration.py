@@ -3,7 +3,7 @@ from pathlib import Path
 
 import polars as pl
 import pytest
-from cladetime.util.reference import _docker_installed, get_clade_assignments, get_nextclade_dataset
+from cladetime.util.reference import _docker_installed, _get_clade_assignments, _get_nextclade_dataset
 
 docker_enabled = _docker_installed()
 
@@ -19,7 +19,7 @@ def test_file_path() -> Path:
 
 @pytest.mark.skipif(not docker_enabled, reason="Docker is not installed")
 def test_get_nextclade_dataset(tmp_path):
-    dataset_path = get_nextclade_dataset("latest", "sars-cov-2", "2024-07-17--12-57-03Z", tmp_path)
+    dataset_path = _get_nextclade_dataset("latest", "sars-cov-2", "2024-07-17--12-57-03Z", tmp_path)
 
     assert "2024-07-17--12-57-03Z" in str(dataset_path)
 
@@ -40,7 +40,7 @@ def test_get_clade_assignments(test_file_path, tmp_path):
     sequence_file = test_file_path / "test_sequences.fasta"
     nextclade_dataset = test_file_path / "test_nextclade_dataset.zip"
 
-    assignment_file = get_clade_assignments("latest", sequence_file, nextclade_dataset, tmp_path)
+    assignment_file = _get_clade_assignments("latest", sequence_file, nextclade_dataset, tmp_path)
     assignment_df = pl.read_csv(assignment_file, separator=";").select(
         ["seqName", "clade", "clade_nextstrain", "Nextclade_pango"]
     )

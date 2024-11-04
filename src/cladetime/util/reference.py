@@ -113,7 +113,7 @@ def _run_nextclade_cli(
     return output_file
 
 
-def get_nextclade_dataset(
+def _get_nextclade_dataset(
     nextclade_cli_version: str, dataset_name: str, dataset_version: str, output_path: Path
 ) -> Path:
     """Return a specific version of a Nextclade dataset.
@@ -164,12 +164,12 @@ def get_nextclade_dataset(
     return output_file
 
 
-def get_clade_assignments(
+def _get_clade_assignments(
     nextclade_cli_version: str, sequence_file: Path, nextclade_dataset: Path, output_path: Path
 ) -> Path:
     """Assign clades to sequences using the Nextclade CLI.
 
-    Run the Nextclade CLI :external:doc:`dataset run<user/nextclade-cli/usage>`
+    Invoke the Nextclade CLI :external:doc:`dataset run<user/nextclade-cli/usage>`
     command and save the resulting clade assignment file to disk. The clade
     assignment file will be in CSV format.
 
