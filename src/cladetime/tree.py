@@ -10,7 +10,7 @@ import structlog
 
 from cladetime import CladeTime
 from cladetime.exceptions import NextcladeNotAvailableError, TreeNotAvailableError
-from cladetime.util.reference import _docker_installed, _get_s3_object_url, get_nextclade_dataset
+from cladetime.util.reference import _docker_installed, _get_nextclade_dataset, _get_s3_object_url
 from cladetime.util.sequence import _get_ncov_metadata
 
 logger = structlog.get_logger()
@@ -161,7 +161,7 @@ class Tree:
             raise TreeNotAvailableError(f"Incomplete ncov metadata {ncov_metadata}")
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            nextclade_dataset = get_nextclade_dataset(
+            nextclade_dataset = _get_nextclade_dataset(
                 nextclade_version_num, nextclade_dataset_name.lower(), nextclade_dataset_version, Path(tmpdir)
             )
             zip = zipfile.ZipFile(str(nextclade_dataset))
