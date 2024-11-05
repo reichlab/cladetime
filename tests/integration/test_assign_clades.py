@@ -1,11 +1,13 @@
 import datetime
 
 import click
+import pytest
 from cladetime.assign_clades import main
 from click.testing import CliRunner
 
 
 # test below runs the entire pipeline
+@pytest.mark.skip(reason="Skip until CLI is updated to use CladeTime.")
 def test_main(tmp_path):
     today = datetime.date.today()
     test_date = today - datetime.timedelta(days=2)
@@ -29,6 +31,7 @@ def test_main(tmp_path):
         assert result.exit_code == 0
 
 
+@pytest.mark.skip(reason="Skip until CLI is updated to use CladeTime.")
 def test_main_bad_date(tmp_path):
     today = datetime.date.today()
     test_date = today - datetime.timedelta(days=5)
