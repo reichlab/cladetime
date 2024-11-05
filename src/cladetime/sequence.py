@@ -302,7 +302,7 @@ def parse_sequence_assignments(df_assignments: pl.DataFrame) -> pl.DataFrame:
     return df_assignments
 
 
-def filter(sequence_ids: set, url_sequence: str, output_path: Path) -> tuple[Path, int, int]:
+def filter(sequence_ids: set, url_sequence: str, output_path: Path) -> Path:
     """Filter a fasta file against a specific set of sequences.
 
     Download a sequence file (in FASTA format) from Nexstrain, filter
@@ -322,9 +322,8 @@ def filter(sequence_ids: set, url_sequence: str, output_path: Path) -> tuple[Pat
 
     Returns
     -------
-    Tuple[pathlib.Path, int, int]
-        A tuple containing the full path to the filtered sequence file, the
-        number of original sequences, and the number of filtered sequences
+    Path
+        Full path to the filtered sequence file
     """
     session = _get_session()
 
@@ -357,4 +356,4 @@ def filter(sequence_ids: set, url_sequence: str, output_path: Path) -> tuple[Pat
         path=filtered_sequence_file,
     )
 
-    return filtered_sequence_file, sequence_count, sequence_match_count
+    return filtered_sequence_file

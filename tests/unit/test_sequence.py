@@ -189,11 +189,7 @@ def test_filter(test_file_path, tmpdir):
     }
     mock_download = MagicMock(return_value=test_sequence_file, name="_download_from_url_mock")
     with patch("cladetime.sequence._download_from_url", mock_download):
-        filtered_sequence_file, seq_total, seq_filtered = sequence.filter(
-            test_sequence_set, "http://thisismocked.com", tmpdir
-        )
-
-    assert seq_filtered == 4
+        filtered_sequence_file = sequence.filter(test_sequence_set, "http://thisismocked.com", tmpdir)
 
     test_sequence_set.remove("STARFLEET/DS9-DS9-001/2024")
     actual_headers = []
@@ -202,14 +198,17 @@ def test_filter(test_file_path, tmpdir):
             actual_headers.append(record.description)
     assert set(actual_headers) == test_sequence_set
 
-    # test with empty sequence set
+
+def test_filter_no_sequences(test_file_path, tmpdir):
+    """Test filter with empty sequence set."""
+    test_sequence_file = test_file_path / "test_sequence.xz"
     test_sequence_set = {}
     mock_download = MagicMock(return_value=test_sequence_file, name="_download_from_url_mock")
     with patch("cladetime.sequence._download_from_url", mock_download):
-        filtered_sequence_file, seq_total, seq_filtered = sequence.filter(
-            test_sequence_set, "http://thisismocked.com", tmpdir
-        )
-    assert seq_filtered == 0
+        filtered_no_sequence = sequence.filter(test_sequence_set, "http://thisismocked.com", tmpdir)
+
+    contents = filtered_no_sequence.read_text(encoding=None)
+    assert len(contents) == 0
 
 
 def test_filter_empty_fasta(tmpdir):
@@ -220,7 +219,6 @@ def test_filter_empty_fasta(tmpdir):
         pass
     mock_download = MagicMock(return_value=empty_sequence_file, name="_download_from_url_mock")
     with patch("cladetime.sequence._download_from_url", mock_download):
-        filtered_sequence_file, seq_total, seq_filtered = sequence.filter(
-            test_sequence_set, "http://thisismocked.com", tmpdir
-        )
-    assert seq_filtered == 0
+        seq_filtered = sequence.filter(test_sequence_set, "http://thisismocked.com", tmpdir)
+    contents = seq_filtered.read_text(encoding=None)
+    assert len(contents) == 0
