@@ -2,8 +2,9 @@
 Sequence
 =========
 
-.. autofunction:: cladetime.sequence.filter_sequence_metadata
+.. autofunction:: cladetime.sequence.filter
 
-.. autofunction:: cladetime.sequence.get_sequence_set
+.. autofunction:: cladetime.sequence.filter_metadata
 
-.. autofunction:: cladetime.sequence.filter_sequence_data
+.. autofunction:: cladetime.sequence.get_metadata_ids
+
