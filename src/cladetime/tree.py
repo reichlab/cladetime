@@ -8,7 +8,7 @@ from urllib.parse import urljoin
 
 import structlog
 
-from cladetime import CladeTime
+from cladetime import CladeTime, sequence
 from cladetime.exceptions import NextcladeNotAvailableError, TreeNotAvailableError
 from cladetime.util.reference import _docker_installed, _get_nextclade_dataset, _get_s3_object_url
 from cladetime.util.sequence import _get_ncov_metadata
@@ -35,9 +35,19 @@ class Tree:
         """Tree constructor."""
         self._clade_time = clade_time
         self.as_of = self._clade_time.tree_as_of
-        self._nextclade_data_url = self._clade_time._config.nextclade_data_url
-        self._nextclade_data_url_version = self._clade_time._config.nextclade_data_url_version
-        self._tree_name = self._clade_time._config.nextclade_input_tree_name
+        self._config = self._clade_time._config
+        self._nextclade_data_url = self._config.nextclade_data_url
+        self._nextclade_data_url_version = self._config.nextclade_data_url_version
+        self._tree_name = self._config.nextclade_input_tree_name
+
+        # Nextstrain began publishing ncov pipeline metadata starting on 2024-08-01
+        if self.as_of >= self._config.nextstrain_min_ncov_metadata_date:
+            self.url_ncov_metadata = _get_s3_object_url(
+                self._config.nextstrain_ncov_bucket, self._config.nextstrain_ncov_metadata_key, self.as_of
+            )[1]
+        else:
+            self.url_ncov_metadata = None
+        self._ncov_metadata = self.ncov_metadata
         self._url = self.url
 
     def __repr__(self):
@@ -46,6 +56,19 @@ class Tree:
 
     def __str__(self):
         return f"Represents Nexclade reference tree data as of {self.as_of.strftime('%Y-%m-%d')}"
+
+    @property
+    def ncov_metadata(self) -> dict:
+        """
+        dict : Metadata from the Nextstrain pipeline run that corresponds
+        to as_of.
+        """
+        if self.url_ncov_metadata:
+            metadata = sequence._get_ncov_metadata(self.url_ncov_metadata)
+            return metadata
+        else:
+            metadata = {}
+        return metadata
 
     @property
     def url(self) -> str:
@@ -100,7 +123,7 @@ class Tree:
 
         # we can only reliably retrieve the a past reference tree if we
         # have access to the ncov metadata for that date
-        min_tree_as_of = self._clade_time._config.nextstrain_min_ncov_metadata_date
+        min_tree_as_of = self._config.nextstrain_min_ncov_metadata_date
         if min_tree_as_of > self.as_of:
             logger.error("Reference tree not available", tree_as_of=self.as_of)
             raise TreeNotAvailableError(
@@ -108,7 +131,7 @@ class Tree:
             )
 
         # get the ncov metadata as of the CladeTime's tree_as_of date
-        url_ncov_metadata = self._get_url_ncov_metadata()
+        url_ncov_metadata = self.url_ncov_metadata
 
         if url_ncov_metadata is None:
             logger.error("Reference tree not available", tree_as_of=self.clade_time.tree_as_of)
@@ -125,14 +148,6 @@ class Tree:
         )
         return tree_url
 
-    def _get_url_ncov_metadata(self):
-        """Get the URL to the ncov metadata file for the tree_as_of date."""
-        return _get_s3_object_url(
-            self._clade_time._config.nextstrain_ncov_bucket,
-            self._clade_time._config.nextstrain_ncov_metadata_key,
-            self.as_of,
-        )[1]
-
     def _get_reference_tree(self) -> dict:
         """Return a reference tree used for SARS-CoV-2 clade assignments
 
@@ -147,18 +162,16 @@ class Tree:
             A Python dictionary that represents the reference tree.
         """
         # get the ncov metadata as of the CladeTime's tree_as_of date
-        url_ncov_metadata = self._get_url_ncov_metadata()
-        if url_ncov_metadata is None:
+        if self.url_ncov_metadata is None:
             logger.error("Reference tree not available", tree_as_of=self.as_of)
             raise TreeNotAvailableError(f"Reference tree not available for {self.as_of}")
 
-        ncov_metadata = _get_ncov_metadata(url_ncov_metadata)
-        nextclade_version_num = ncov_metadata.get("nextclade_version_num", "")
-        nextclade_dataset_name = ncov_metadata.get("nextclade_dataset_name", "")
-        nextclade_dataset_version = ncov_metadata.get("nextclade_dataset_version", "")
+        nextclade_version_num = self.ncov_metadata.get("nextclade_version_num", "")
+        nextclade_dataset_name = self.ncov_metadata.get("nextclade_dataset_name", "")
+        nextclade_dataset_version = self.ncov_metadata.get("nextclade_dataset_version", "")
         if not all([nextclade_version_num, nextclade_dataset_name, nextclade_dataset_version]):
             logger.error("Incomplete ncov metadata", tree_as_of=self._clade_time.tree_as_of)
-            raise TreeNotAvailableError(f"Incomplete ncov metadata {ncov_metadata}")
+            raise TreeNotAvailableError(f"Incomplete ncov metadata {self.ncov_metadata}")
 
         with tempfile.TemporaryDirectory() as tmpdir:
             nextclade_dataset = _get_nextclade_dataset(
