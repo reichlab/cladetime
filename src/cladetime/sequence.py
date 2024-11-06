@@ -37,11 +37,11 @@ def _download_from_url(session: Session, url: str, data_path: Path) -> Path:
     return filename
 
 
-def get_covid_genome_metadata(
+def get_metadata(
     metadata_path: Path | None = None, metadata_url: str | None = None, num_rows: int | None = None
 ) -> pl.LazyFrame:
     """
-    Read GenBank genome metadata into a Polars LazyFrame.
+    Read GenBank SARS-CoV-2 genome metadata into a Polars LazyFrame.
 
     Parameters
     ----------
@@ -106,7 +106,7 @@ def _get_ncov_metadata(
     return metadata
 
 
-def filter_sequence_metadata(
+def filter_metadata(
     metadata: pl.DataFrame | pl.LazyFrame, cols: list | None = None, state_format: StateFormat = StateFormat.ABBR
 ) -> pl.DataFrame | pl.LazyFrame:
     """Apply standard filters to Nextstrain's SARS-CoV-2 sequence metadata.
@@ -252,7 +252,7 @@ def get_clade_counts(filtered_metadata: pl.LazyFrame) -> pl.LazyFrame:
     return counts
 
 
-def get_sequence_set(sequence_metadata: pl.DataFrame | pl.LazyFrame) -> set:
+def get_metadata_ids(sequence_metadata: pl.DataFrame | pl.LazyFrame) -> set:
     """Return sequence IDs for a specified set of Nextstrain sequence metadata.
 
     For a given input of GenBank-based SARS-Cov-2 sequence metadata (as
@@ -302,7 +302,7 @@ def parse_sequence_assignments(df_assignments: pl.DataFrame) -> pl.DataFrame:
     return df_assignments
 
 
-def filter_sequence_data(sequence_ids: set, url_sequence: str, output_path: Path) -> tuple[Path, int, int]:
+def filter(sequence_ids: set, url_sequence: str, output_path: Path) -> Path:
     """Filter a fasta file against a specific set of sequences.
 
     Download a sequence file (in FASTA format) from Nexstrain, filter
@@ -322,9 +322,8 @@ def filter_sequence_data(sequence_ids: set, url_sequence: str, output_path: Path
 
     Returns
     -------
-    Tuple[pathlib.Path, int, int]
-        A tuple containing the full path to the filtered sequence file, the
-        number of original sequences, and the number of filtered sequences
+    pathlib.Path
+        Full path to the filtered sequence file
     """
     session = _get_session()
 
@@ -357,4 +356,4 @@ def filter_sequence_data(sequence_ids: set, url_sequence: str, output_path: Path
         path=filtered_sequence_file,
     )
 
-    return filtered_sequence_file, sequence_count, sequence_match_count
+    return filtered_sequence_file

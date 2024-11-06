@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 import polars as pl
 import structlog
 
+from cladetime import sequence
 from cladetime.exceptions import CladeTimeFutureDateWarning, CladeTimeInvalidDateError, CladeTimeInvalidURLError
-from cladetime.sequence import _get_ncov_metadata, get_covid_genome_metadata
 from cladetime.util.config import Config
 from cladetime.util.reference import _get_s3_object_url
 
@@ -136,7 +136,7 @@ class CladeTime:
         Nextstrain began publishing ncov pipeline metadata.
         """
         if self.url_ncov_metadata:
-            metadata = _get_ncov_metadata(self.url_ncov_metadata)
+            metadata = sequence._get_ncov_metadata(self.url_ncov_metadata)
             return metadata
         else:
             metadata = {}
@@ -153,7 +153,7 @@ class CladeTime:
         :any:`url_sequence_metadata<url_sequence_metadata>`
         """
         if self.url_sequence_metadata:
-            sequence_metadata = get_covid_genome_metadata(metadata_url=self.url_sequence_metadata)
+            sequence_metadata = sequence.get_metadata(metadata_url=self.url_sequence_metadata)
             return sequence_metadata
         else:
             raise CladeTimeInvalidURLError("CladeTime is missing url_sequence_metadata")

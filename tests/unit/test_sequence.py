@@ -5,12 +5,8 @@ from unittest.mock import MagicMock, patch
 import polars as pl
 import pytest
 from Bio import SeqIO
-from cladetime.sequence import (
-    filter_sequence_data,
-    filter_sequence_metadata,
-    get_covid_genome_metadata,
-    get_sequence_set,
-)
+
+from cladetime import sequence
 from cladetime.types import StateFormat
 
 
@@ -38,10 +34,10 @@ def test_file_path() -> Path:
 
 
 @pytest.mark.parametrize("metadata_file", ["metadata.tsv.zst", "metadata.tsv.xz"])
-def test_get_covid_genome_metadata(test_file_path, metadata_file):
+def test_get_metadata(test_file_path, metadata_file):
     metadata_path = test_file_path / metadata_file
 
-    metadata = get_covid_genome_metadata(metadata_path)
+    metadata = sequence.get_metadata(metadata_path)
     metadata_cols = set(metadata.collect_schema().names())
 
     expected_cols = {
@@ -57,19 +53,19 @@ def test_get_covid_genome_metadata(test_file_path, metadata_file):
 
 
 @pytest.mark.parametrize("metadata_file", ["metadata.tsv.zst", "metadata.tsv.xz"])
-def test_get_covid_genome_metadata_url(s3_setup, test_file_path, metadata_file):
+def test_get_metadata_url(s3_setup, test_file_path, metadata_file):
     """
-    Test get_covid_genome_metadata when used with an S3 URL instead of a local file.
+    Test get_metadata when used with an S3 URL instead of a local file.
     Needs additional research into moto and S3 url access.
     """
     s3_client, bucket_name, s3_object_keys = s3_setup
 
     url = f"https://{bucket_name}.s3.amazonaws.com/data/object-key/{metadata_file}"
-    metadata = get_covid_genome_metadata(metadata_url=url)
+    metadata = sequence.get_metadata(metadata_url=url)
     assert isinstance(metadata, pl.LazyFrame)
 
 
-def test_filter_covid_genome_metadata():
+def test_filter_metadata():
     test_genome_metadata = {
         "date": ["2022-01-01", "2022-01-02", "2022-01-03", "2023-12-25", None, "2023-12-27", "2023-05"],
         "host": [
@@ -91,7 +87,7 @@ def test_filter_covid_genome_metadata():
     }
 
     lf_metadata = pl.LazyFrame(test_genome_metadata)
-    lf_filtered = filter_sequence_metadata(lf_metadata).collect()
+    lf_filtered = sequence.filter_metadata(lf_metadata).collect()
 
     assert len(lf_filtered) == 2
 
@@ -114,7 +110,7 @@ def test_filter_covid_genome_metadata():
     assert actual_schema == expected_schema
 
 
-def test_filter_covid_genome_metadata_state_name():
+def test_filter_metadata_state_name():
     num_test_rows = 4
     test_genome_metadata = {
         "date": ["2022-01-01"] * num_test_rows,
@@ -128,7 +124,7 @@ def test_filter_covid_genome_metadata_state_name():
     }
 
     lf_metadata = pl.LazyFrame(test_genome_metadata)
-    lf_filtered = filter_sequence_metadata(lf_metadata, state_format=StateFormat.NAME)
+    lf_filtered = sequence.filter_metadata(lf_metadata, state_format=StateFormat.NAME)
     lf_filtered = lf_filtered.collect()
 
     # Un-mapped states are dropped from dataset
@@ -138,7 +134,7 @@ def test_filter_covid_genome_metadata_state_name():
     assert locations == {"Alaska", "Puerto Rico", "Washington DC"}
 
 
-def test_filter_covid_genome_metadata_state_fips():
+def test_filter_metadata_state_fips():
     num_test_rows = 4
     test_genome_metadata = {
         "date": ["2022-01-01"] * num_test_rows,
@@ -152,7 +148,7 @@ def test_filter_covid_genome_metadata_state_fips():
     }
 
     lf_metadata = pl.LazyFrame(test_genome_metadata)
-    lf_filtered = filter_sequence_metadata(lf_metadata, state_format=StateFormat.FIPS)
+    lf_filtered = sequence.filter_metadata(lf_metadata, state_format=StateFormat.FIPS)
     lf_filtered = lf_filtered.collect()
 
     # Un-mapped states are dropped from dataset
@@ -162,7 +158,7 @@ def test_filter_covid_genome_metadata_state_fips():
     assert locations == {"11", "25", "72"}
 
 
-def test_get_sequence_set():
+def test_get_metadata_ids():
     metadata = {
         "genbank_accession": ["A1", "A2", "A2", "A4"],
         "country": ["USA", "Canada", "Mexico", "Brazil"],
@@ -171,19 +167,19 @@ def test_get_sequence_set():
     expected_set = {"A1", "A2", "A4"}
 
     lf = pl.LazyFrame(metadata)
-    seq_set = get_sequence_set(lf)
+    seq_set = sequence.get_metadata_ids(lf)
     assert seq_set == expected_set
 
     df = lf.collect()
-    seq_set = get_sequence_set(df)
+    seq_set = sequence.get_metadata_ids(df)
     assert seq_set == expected_set
 
     empty_lf = pl.LazyFrame([])
     with pytest.raises(ValueError):
-        seq_set = get_sequence_set(empty_lf)
+        seq_set = sequence.get_metadata_ids(empty_lf)
 
 
-def test_filter_sequence_data(test_file_path, tmpdir):
+def test_filter(test_file_path, tmpdir):
     test_sequence_file = test_file_path / "test_sequence.xz"
     test_sequence_set = {
         "USA/MD-MDH-1820/2021",
@@ -194,11 +190,7 @@ def test_filter_sequence_data(test_file_path, tmpdir):
     }
     mock_download = MagicMock(return_value=test_sequence_file, name="_download_from_url_mock")
     with patch("cladetime.sequence._download_from_url", mock_download):
-        filtered_sequence_file, seq_total, seq_filtered = filter_sequence_data(
-            test_sequence_set, "http://thisismocked.com", tmpdir
-        )
-
-    assert seq_filtered == 4
+        filtered_sequence_file = sequence.filter(test_sequence_set, "http://thisismocked.com", tmpdir)
 
     test_sequence_set.remove("STARFLEET/DS9-DS9-001/2024")
     actual_headers = []
@@ -207,17 +199,20 @@ def test_filter_sequence_data(test_file_path, tmpdir):
             actual_headers.append(record.description)
     assert set(actual_headers) == test_sequence_set
 
-    # test with empty sequence set
+
+def test_filter_no_sequences(test_file_path, tmpdir):
+    """Test filter with empty sequence set."""
+    test_sequence_file = test_file_path / "test_sequence.xz"
     test_sequence_set = {}
     mock_download = MagicMock(return_value=test_sequence_file, name="_download_from_url_mock")
     with patch("cladetime.sequence._download_from_url", mock_download):
-        filtered_sequence_file, seq_total, seq_filtered = filter_sequence_data(
-            test_sequence_set, "http://thisismocked.com", tmpdir
-        )
-    assert seq_filtered == 0
+        filtered_no_sequence = sequence.filter(test_sequence_set, "http://thisismocked.com", tmpdir)
+
+    contents = filtered_no_sequence.read_text(encoding=None)
+    assert len(contents) == 0
 
 
-def test_filter_sequence_data_empty_fasta(tmpdir):
+def test_filter_empty_fasta(tmpdir):
     # sequence file is empty
     test_sequence_set = {"A", "B", "C", "D"}
     empty_sequence_file = tmpdir / "empty_sequence_file.xz"
@@ -225,7 +220,6 @@ def test_filter_sequence_data_empty_fasta(tmpdir):
         pass
     mock_download = MagicMock(return_value=empty_sequence_file, name="_download_from_url_mock")
     with patch("cladetime.sequence._download_from_url", mock_download):
-        filtered_sequence_file, seq_total, seq_filtered = filter_sequence_data(
-            test_sequence_set, "http://thisismocked.com", tmpdir
-        )
-    assert seq_filtered == 0
+        seq_filtered = sequence.filter(test_sequence_set, "http://thisismocked.com", tmpdir)
+    contents = seq_filtered.read_text(encoding=None)
+    assert len(contents) == 0

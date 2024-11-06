@@ -10,8 +10,7 @@ import polars as pl
 import rich_click as click
 import structlog
 
-from cladetime import CladeTime
-from cladetime.sequence import _download_from_url, filter_sequence_metadata
+from cladetime import CladeTime, sequence
 from cladetime.util.config import Config
 from cladetime.util.session import _get_session
 from cladetime.util.timing import time_function
@@ -34,7 +33,7 @@ def _save_sequences(ct: CladeTime, tmpdir: Path) -> Path:
     """Download and save SAR-CoV-2 sequences from Nextstrain."""
 
     logger.info("Downloading SARS-CoV-2 sequences from Nextstrain", url=ct.url_sequence)
-    full_sequence_file = _download_from_url(session=session, url=ct.url_sequence, data_path=Path(tmpdir))
+    full_sequence_file = sequence._download_from_url(session=session, url=ct.url_sequence, data_path=Path(tmpdir))
     return full_sequence_file
 
 
@@ -60,7 +59,7 @@ def get_sequence_metadata(metadata: pl.DataFrame, sequence_collection_date: date
     ]
 
     # clean and filter metadata (same process used to generate the weekly clade list)
-    filtered_metadata = filter_sequence_metadata(metadata, cols)
+    filtered_metadata = sequence.filter_metadata(metadata, cols)
 
     # add filters based on user input
     filtered_metadata = filtered_metadata.filter(pl.col("date") >= sequence_collection_date)
