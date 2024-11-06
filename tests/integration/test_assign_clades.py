@@ -2,8 +2,9 @@ import datetime
 
 import click
 import pytest
-from cladetime.assign_clades import main
 from click.testing import CliRunner
+
+from cladetime.assign_clades import main
 
 
 # test below runs the entire pipeline

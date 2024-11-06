@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import polars as pl
 import pytest
 from Bio import SeqIO
+
 from cladetime import sequence
 from cladetime.types import StateFormat
 

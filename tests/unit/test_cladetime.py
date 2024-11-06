@@ -4,9 +4,10 @@ from urllib.parse import parse_qs, urlparse
 
 import dateutil.tz
 import pytest
+from freezegun import freeze_time
+
 from cladetime.cladetime import CladeTime
 from cladetime.exceptions import CladeTimeFutureDateWarning, CladeTimeInvalidDateError, CladeTimeInvalidURLError
-from freezegun import freeze_time
 
 
 def test_cladetime_no_args():

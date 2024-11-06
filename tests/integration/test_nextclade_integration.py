@@ -3,6 +3,7 @@ from pathlib import Path
 
 import polars as pl
 import pytest
+
 from cladetime.util.reference import _docker_installed, _get_clade_assignments, _get_nextclade_dataset
 
 docker_enabled = _docker_installed()

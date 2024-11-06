@@ -1,10 +1,11 @@
 from urllib.parse import urlparse
 
 import pytest
+from freezegun import freeze_time
+
 from cladetime import CladeTime, Tree
 from cladetime.exceptions import TreeNotAvailableError
 from cladetime.util.reference import _docker_installed
-from freezegun import freeze_time
 
 docker_enabled = _docker_installed()
 
