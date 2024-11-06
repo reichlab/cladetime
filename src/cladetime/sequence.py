@@ -26,6 +26,7 @@ def _download_from_url(session: Session, url: str, data_path: Path) -> Path:
 
     parsed_url = urlparse(url)
     url_filename = os.path.basename(parsed_url.path)
+    data_path.mkdir(parents=True, exist_ok=True)
     filename = data_path / url_filename
 
     with session.get(url, stream=True) as result:
@@ -131,8 +132,7 @@ def filter_metadata(
     cols : list
         Optional. A list of columns to include in the filtered metadata.
         The default columns included in the filtered metadata are:
-        clade_nextstrain, country, date, division, genbank_accession,
-        genbank_accession_rev, host
+        clade_nextstrain, country, date, division, strain, host
     state_format : :class:`cladetime.types.StateFormat`
         Optional. The state name format returned in the filtered metadata's
         location column. Defaults to `StateFormat.ABBR`
@@ -167,19 +167,19 @@ def filter_metadata(
     >>> filtered_metadata = filter_covid_genome_metadata(ct.sequence_metadata)
     >>> filtered_metadata.collect().head(5)
     shape: (5, 7)
-    ┌───────┬─────────┬────────────┬────────────┬────────────┬──────────────┬──────┬
-    │ clade ┆ country ┆ date       ┆ genbank_   ┆ genbank_ac ┆ host         ┆ loca │
-    │       ┆         ┆            ┆ accession  ┆ cession_rev┆              ┆ tion │
-    │ ---   ┆ ---     ┆ ---        ┆ ---        ┆ ---        ┆ ---          ┆ ---  │
-    │ str   ┆ str     ┆ date       ┆ str        ┆ str        ┆ str          ┆ str  │
-    │       ┆         ┆            ┆            ┆            ┆              ┆      │
-    ╞═══════╪═════════╪════════════╪════════════╪════════════╪══════════════╪══════╡
-    │ 22A   ┆ USA     ┆ 2022-07-07 ┆ PP223234   ┆ PP223234.1 ┆ Homo sapiens ┆ AL   │
-    │ 22B   ┆ USA     ┆ 2022-07-02 ┆ PP223435   ┆ PP223435.1 ┆ Homo sapiens ┆ AZ   │
-    │ 22B   ┆ USA     ┆ 2022-07-19 ┆ PP223235   ┆ PP223235.1 ┆ Homo sapiens ┆ AZ   │
-    │ 22B   ┆ USA     ┆ 2022-07-15 ┆ PP223236   ┆ PP223236.1 ┆ Homo sapiens ┆ AZ   │
-    │ 22B   ┆ USA     ┆ 2022-07-20 ┆ PP223237   ┆ PP223237.1 ┆ Homo sapiens ┆ AZ   │
-    └───────┴─────────┴────────────┴────────────┴────────────┴─────────────────────┴
+    ┌───────┬─────────┬────────────┬────────────────────────────┬──────────────┬──────┬
+    │ clade ┆ country ┆ date       ┆ strain                     ┆ host         ┆ loca │
+    │       ┆         ┆            ┆                            ┆              ┆ tion │
+    │ ---   ┆ ---     ┆ ---        ┆ ---                        ┆ ---          ┆ ---  │
+    │ str   ┆ str     ┆ date       ┆ str                        ┆ str          ┆ str  │
+    │       ┆         ┆            ┆                            ┆              ┆      │
+    ╞═══════╪═════════╪════════════╪════════════════════════════╪══════════════╪══════╡
+    │ 22A   ┆ USA     ┆ 2022-07-07 ┆ Alabama/SEARCH-202312/2022 ┆ Homo sapiens ┆ AL   │
+    │ 22B   ┆ USA     ┆ 2022-07-02 ┆ Arizona/SEARCH-201153/2022 ┆ Homo sapiens ┆ AZ   │
+    │ 22B   ┆ USA     ┆ 2022-07-19 ┆ Arizona/SEARCH-203528/2022 ┆ Homo sapiens ┆ AZ   │
+    │ 22B   ┆ USA     ┆ 2022-07-15 ┆ Arizona/SEARCH-203621/2022 ┆ Homo sapiens ┆ AZ   │
+    │ 22B   ┆ USA     ┆ 2022-07-20 ┆ Arizona/SEARCH-203625/2022 ┆ Homo sapiens ┆ AZ   │
+    └───────┴─────────┴────────────┴────────────────────────────┴─────────────────────┴
     """
     if state_format not in StateFormat:
         raise ValueError(f"Invalid state_format. Must be one of: {list(StateFormat.__members__.items())}")
@@ -191,8 +191,7 @@ def filter_metadata(
             "country",
             "date",
             "division",
-            "genbank_accession",
-            "genbank_accession_rev",
+            "strain",
             "host",
         ]
 
@@ -256,7 +255,8 @@ def get_metadata_ids(sequence_metadata: pl.DataFrame | pl.LazyFrame) -> set:
     """Return sequence IDs for a specified set of Nextstrain sequence metadata.
 
     For a given input of GenBank-based SARS-Cov-2 sequence metadata (as
-    published by Nextstrain), return a set of GenBank accession numbers.
+    published by Nextstrain), return a set of strains. This function is
+    mostly used to filter a sequence file.
 
     Parameters
     ----------
@@ -265,21 +265,23 @@ def get_metadata_ids(sequence_metadata: pl.DataFrame | pl.LazyFrame) -> set:
     Returns
     -------
     set
-        A set of GenBank accession numbers
+        A set of
+        :external:doc:`strains<reference/metadata-fields.html#column-1-strain>`
 
     Raises
     ------
     ValueError
-        If the sequence metadata does not contain a genbank_accession column
+        If the sequence metadata does not contain a strain column
     """
+    logger.info("Collecting sequence IDs from metadata")
     metadata_columns = sequence_metadata.collect_schema().names()
-    if "genbank_accession" not in metadata_columns:
-        logger.error("Missing column from sequence_metadata", column="genbank_accession")
-        raise ValueError("Sequence metadata does not contain a genbank_accession column.")
-    sequences = sequence_metadata.select("genbank_accession").unique()
+    if "strain" not in metadata_columns:
+        logger.error("Missing column from sequence_metadata", column="strain")
+        raise ValueError("Sequence metadata does not contain a strain column.")
+    sequences = sequence_metadata.select("strain").unique()
     if isinstance(sequence_metadata, pl.LazyFrame):
         sequences = sequences.collect()  # type: ignore
-    seq_set = set(sequences["genbank_accession"].to_list())  # type: ignore
+    seq_set = set(sequences["strain"].to_list())  # type: ignore
 
     return seq_set
 
@@ -302,17 +304,18 @@ def parse_sequence_assignments(df_assignments: pl.DataFrame) -> pl.DataFrame:
     return df_assignments
 
 
+@time_function
 def filter(sequence_ids: set, url_sequence: str, output_path: Path) -> Path:
     """Filter a fasta file against a specific set of sequences.
 
     Download a sequence file (in FASTA format) from Nexstrain, filter
-    it against a set of specific sequence ids (GenBank accession numbers),
-    and write the filtered sequences to a new file.
+    it against a set of specific strains, and write the filtered
+    sequences to a new file.
 
     Parameters
     ----------
     sequence_ids : set
-        GenBank accession numbers used to filter the sequence file
+        Strains used to filter the sequence file
     url_sequence : str
         The URL to a file of SARS-CoV-2 GenBank sequences published by Nexstrain.
         The file is should be in .fasta format using the lzma compression

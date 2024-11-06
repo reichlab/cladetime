@@ -46,8 +46,7 @@ def test_get_metadata(test_file_path, metadata_file):
         "country",
         "division",
         "clade_nextstrain",
-        "genbank_accession",
-        "genbank_accession_rev",
+        "strain",
     }
     assert expected_cols.issubset(metadata_cols)
 
@@ -81,8 +80,7 @@ def test_filter_metadata():
         "division": ["Alaska", "Maine", "Guam", "Puerto Rico", "Utah", "Washington DC", "Pennsylvania"],
         "clade_nextstrain": ["AAA", "BBB", "CCC", "DDD", "EEE", "FFF", "FFF"],
         "location": ["Vulcan", "Reisa", "Bajor", "Deep Space 9", "Earth", "Cardassia", "Cardassia"],
-        "genbank_accession": ["A1", "A2", "B1", "B2", "C1", "C2", "C2"],
-        "genbank_accession_rev": ["A1.1", "A2.4", "B1.1", "B2.5", "C1.1", "C2.1", "C2.1"],
+        "strain": ["A1", "A2", "B1", "B2", "C1", "C2", "C2"],
         "unwanted_column": [1, 2, 3, 4, 5, 6, 7],
     }
 
@@ -101,8 +99,7 @@ def test_filter_metadata():
             "clade": pl.String,
             "country": pl.String,
             "date": pl.Date,
-            "genbank_accession": pl.String,
-            "genbank_accession_rev": pl.String,
+            "strain": pl.String,
             "host": pl.String,
             "location": pl.String,
         }
@@ -118,8 +115,7 @@ def test_filter_metadata_state_name():
         "country": ["USA"] * num_test_rows,
         "clade_nextstrain": ["AAA"] * num_test_rows,
         "location": ["Earth"] * num_test_rows,
-        "genbank_accession": ["A1"] * num_test_rows,
-        "genbank_accession_rev": ["A1.1"] * num_test_rows,
+        "strain": ["A1"] * num_test_rows,
         "division": ["Alaska", "Puerto Rico", "Washington DC", "Fake State"],
     }
 
@@ -142,8 +138,7 @@ def test_filter_metadata_state_fips():
         "country": ["USA"] * num_test_rows,
         "clade_nextstrain": ["AAA"] * num_test_rows,
         "location": ["Earth"] * num_test_rows,
-        "genbank_accession": ["A1"] * num_test_rows,
-        "genbank_accession_rev": ["A1.1"] * num_test_rows,
+        "strain": ["A1"] * num_test_rows,
         "division": ["Massachusetts", "Puerto Rico", "Washington DC", "Fake State"],
     }
 
@@ -160,7 +155,7 @@ def test_filter_metadata_state_fips():
 
 def test_get_metadata_ids():
     metadata = {
-        "genbank_accession": ["A1", "A2", "A2", "A4"],
+        "strain": ["A1", "A2", "A2", "A4"],
         "country": ["USA", "Canada", "Mexico", "Brazil"],
         "location": ["Earth", "Earth", "Earth", "Earth"],
     }
