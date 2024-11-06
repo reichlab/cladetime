@@ -322,7 +322,7 @@ def filter(sequence_ids: set, url_sequence: str, output_path: Path) -> Path:
 
     Returns
     -------
-    Path
+    pathlib.Path
         Full path to the filtered sequence file
     """
     session = _get_session()
