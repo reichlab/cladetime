@@ -1,5 +1,4 @@
 import zipfile
-from pathlib import Path
 
 import polars as pl
 import pytest
@@ -7,15 +6,6 @@ import pytest
 from cladetime.util.reference import _docker_installed, _get_clade_assignments, _get_nextclade_dataset
 
 docker_enabled = _docker_installed()
-
-
-@pytest.fixture
-def test_file_path() -> Path:
-    """
-    Return path to the unit test files.
-    """
-    test_file_path = Path(__file__).parents[1].joinpath("data")
-    return test_file_path
 
 
 @pytest.mark.skipif(not docker_enabled, reason="Docker is not installed")
