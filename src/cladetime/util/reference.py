@@ -71,7 +71,7 @@ def _get_s3_object_url(bucket_name: str, object_key: str, date: datetime) -> Tup
 
 
 def _run_nextclade_cli(
-    nextclade_cli_version: str, nextclade_command: list[str], output_file: Path, input_files: list[Path] | None = None
+    nextclade_cli_version: str, nextclade_command: list[str], output_path: Path, input_files: list[Path] | None = None
 ) -> Path:
     """Invoke Nextclade CLI commands via Docker."""
 
@@ -83,7 +83,6 @@ def _run_nextclade_cli(
             "Unable to create client for Nextstrain CLI. Is Docker installed and running?"
         ) from err
 
-    output_path = output_file.parent
     volumes = {str(output_path): {"bind": "/data/", "mode": "rw"}}
 
     # if the nextclade command requires input files, add those to the volumes
@@ -92,9 +91,10 @@ def _run_nextclade_cli(
         for file in input_files:
             volumes[str(file)] = {"bind": f"/data/{file.name}", "mode": "rw"}
 
+    image = f"nextstrain/nextclade:{nextclade_cli_version}"
     try:
         client.containers.run(
-            image=f"nextstrain/nextclade:{nextclade_cli_version}",
+            image=image,
             command=nextclade_command,
             volumes=volumes,
             remove=True,
@@ -104,13 +104,12 @@ def _run_nextclade_cli(
         msg = "Error running Nextclade CLI via Docker"
         logger.error(
             msg,
-            cli_version=nextclade_cli_version,
+            image=image,
             command=nextclade_command,
+            volumes=volumes,
             error=err,
         )
         raise NextcladeNotAvailableError(msg) from err
-
-    return output_file
 
 
 def _get_nextclade_dataset(
@@ -159,13 +158,13 @@ def _get_nextclade_dataset(
         f"/data/{zip_filename}",
     ]
 
-    _run_nextclade_cli(nextclade_cli_version, command, output_file)
+    _run_nextclade_cli(nextclade_cli_version, command, output_path)
 
     return output_file
 
 
 def _get_clade_assignments(
-    nextclade_cli_version: str, sequence_file: Path, nextclade_dataset: Path, output_path: Path
+    nextclade_cli_version: str, sequence_file: Path, nextclade_dataset: Path, output_file: Path
 ) -> Path:
     """Assign clades to sequences using the Nextclade CLI.
 
@@ -186,8 +185,8 @@ def _get_clade_assignments(
         that contains the reference tree and root sequence to use
         for clade assignment. Use :func:`get_nextclade_dataset` to
         get a dataset that corresponds to a specific point in time.
-    output_path : pathlib.Path
-        Where to save the clade assignment file
+    output_file : pathlib.Path
+        The full filename to use for saving the clade assignment output.
 
     Returns
     -------
@@ -202,9 +201,11 @@ def _get_clade_assignments(
         If there is an error creating a Docker client or running Nextclade
         CLI commands using the Docker image.
     """
-    assignment_filename = "nextclade_assignment.csv"
-    output_file = output_path / assignment_filename
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if not output_file.suffix:
+        raise ValueError("output_file should be a full path to the output file, including filename")
+    output_path = output_file.parent
+    output_path.mkdir(parents=True, exist_ok=True)
+    assignment_filename = output_file.name
 
     # all files in the input_files list will be mounted to
     # the docker image's "/data/" directory when running
@@ -222,6 +223,6 @@ def _get_clade_assignments(
         f"/data/{sequence_file.name}",
     ]
 
-    _run_nextclade_cli(nextclade_cli_version, command, output_file, input_files=input_files)
+    _run_nextclade_cli(nextclade_cli_version, command, output_path, input_files=input_files)
 
     return output_file
