@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 import pytest
@@ -13,7 +13,8 @@ docker_enabled = _docker_installed()
 
 def test__get_tree_url():
     with freeze_time("2024-08-13 16:21:34"):
-        tree = Tree(CladeTime())
+        ct = CladeTime()
+        tree = Tree(ct.tree_as_of, ct.url_sequence)
         tree_url_parts = urlparse(tree.url)
         assert "2024-07-17--12-57-03Z" in tree_url_parts.path
         assert "tree.json" in tree_url_parts.path
@@ -21,8 +22,9 @@ def test__get_tree_url():
 
 def test__get_tree_url_bad_date():
     # we cannot get reference trees prior to 2024-08-01
+    ct = CladeTime()
     with pytest.raises(TreeNotAvailableError):
-        Tree(CladeTime(tree_as_of="2024-07-13"))
+        Tree(datetime(2024, 7, 13, tzinfo=timezone.utc), ct.url_sequence)
 
 
 def test_tree_ncov_metadata():
@@ -30,7 +32,7 @@ def test_tree_ncov_metadata():
         # when tree_as_of <> sequence_as_of, the respective ncov_metadata
         # properties of CladeTime and Tree may differ
         ct = CladeTime(sequence_as_of=datetime.now(), tree_as_of="2024-08-02")
-        tree = Tree(ct)
+        tree = Tree(ct.tree_as_of, ct.url_sequence)
         assert tree.ncov_metadata.get("nextclade_version_num") == "3.8.2"
         assert tree.ncov_metadata.get("nextclade_dataset_version") == "2024-07-17--12-57-03Z"
         assert ct.ncov_metadata.get("nextclade_version_num") == "3.9.1"
@@ -40,5 +42,6 @@ def test_tree_ncov_metadata():
 @pytest.mark.skipif(not docker_enabled, reason="Docker is not installed")
 def test__get_reference_tree():
     with freeze_time("2024-08-13 16:21:34"):
-        tree = Tree(CladeTime())
+        ct = CladeTime()
+        tree = Tree(ct.tree_as_of, ct.url_sequence)
         assert tree.tree.get("meta", "").get("title", "").lower() == "sars-cov-2 phylogeny"

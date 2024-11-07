@@ -3,14 +3,20 @@
 import json
 import tempfile
 import zipfile
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import urljoin
 
 import structlog
 
-from cladetime import CladeTime, sequence
+from cladetime import sequence
 from cladetime.exceptions import NextcladeNotAvailableError, TreeNotAvailableError
-from cladetime.util.reference import _docker_installed, _get_nextclade_dataset, _get_s3_object_url
+from cladetime.util.config import Config
+from cladetime.util.reference import (
+    _docker_installed,
+    _get_nextclade_dataset,
+    _get_s3_object_url,
+)
 from cladetime.util.sequence import _get_ncov_metadata
 
 logger = structlog.get_logger()
@@ -31,22 +37,23 @@ class Tree:
         Nextstrain reference tree represented by this Tree instance.
     """
 
-    def __init__(self, clade_time: CladeTime):
+    def __init__(self, tree_as_of: datetime, url_sequence: str):
         """Tree constructor."""
-        self._clade_time = clade_time
-        self.as_of = self._clade_time.tree_as_of
-        self._config = self._clade_time._config
+        self._config = Config()
+        self.as_of = tree_as_of
+        self.url_sequence = url_sequence
         self._nextclade_data_url = self._config.nextclade_data_url
         self._nextclade_data_url_version = self._config.nextclade_data_url_version
         self._tree_name = self._config.nextclade_input_tree_name
 
         # Nextstrain began publishing ncov pipeline metadata starting on 2024-08-01
-        if self.as_of >= self._config.nextstrain_min_ncov_metadata_date:
+        min_tree_date = self._config.nextstrain_min_ncov_metadata_date
+        if self.as_of >= min_tree_date:
             self.url_ncov_metadata = _get_s3_object_url(
                 self._config.nextstrain_ncov_bucket, self._config.nextstrain_ncov_metadata_key, self.as_of
             )[1]
         else:
-            self.url_ncov_metadata = None
+            raise TreeNotAvailableError(f"References tree not available for dates prior to {min_tree_date}")
         self._ncov_metadata = self.ncov_metadata
         self._url = self.url
 
