@@ -7,7 +7,7 @@ import pytest
 from freezegun import freeze_time
 
 from cladetime.cladetime import CladeTime
-from cladetime.exceptions import CladeTimeFutureDateWarning, CladeTimeInvalidDateError, CladeTimeInvalidURLError
+from cladetime.exceptions import CladeTimeDateWarning, CladeTimeInvalidURLError, CladeTimeSequenceWarning
 
 
 def test_cladetime_no_args():
@@ -22,45 +22,70 @@ def test_cladetime_no_args():
     "sequence_as_of, tree_as_of, expected_sequence_as_of, expected_tree_as_of",
     [
         (
+            # tree_as_of is prior to 2024-08-01, so should default to sequence_as_of
+            # (metadata for reference trees started publishing in Aug, 2024)
             "2024-09-01",
             "2024-01-01",
             datetime(2024, 9, 1, tzinfo=timezone.utc),
-            datetime(2024, 1, 1, tzinfo=timezone.utc),
+            datetime(2024, 9, 1, tzinfo=timezone.utc),
         ),
         (
+            # sequence_as_of set to current date, tree_as_of defaults to sequence_as_of
             None,
             "2023-12-21",
             datetime(2025, 7, 13, 16, 21, 34, tzinfo=timezone.utc),
-            datetime(2023, 12, 21, tzinfo=timezone.utc),
+            datetime(2025, 7, 13, 16, 21, 34, tzinfo=timezone.utc),
         ),
         (
+            # sequence_as_of set to current date, tree_as_of retains specified date
+            None,
+            "2024-09-01",
+            datetime(2025, 7, 13, 16, 21, 34, tzinfo=timezone.utc),
+            datetime(2024, 9, 1, tzinfo=timezone.utc),
+        ),
+        (
+            # tree_as_of set to sequence_as_of
             datetime(2024, 9, 30, 18, 24, 59, 655398),
             None,
             datetime(2024, 9, 30, 18, 24, 59, tzinfo=timezone.utc),
             datetime(2024, 9, 30, 18, 24, 59, tzinfo=timezone.utc),
         ),
         (
-            datetime(2024, 2, 22, 22, 22, 22, 222222, tzinfo=dateutil.tz.gettz("US/Eastern")),
-            datetime(2024, 2, 22, tzinfo=dateutil.tz.gettz("US/Eastern")),
-            datetime(2024, 2, 22, 22, 22, 22, tzinfo=timezone.utc),
-            datetime(2024, 2, 22, tzinfo=timezone.utc),
+            # cladetime ignores incoming timezone, converts everything to UTC
+            datetime(2024, 8, 22, 22, 22, 22, 222222, tzinfo=dateutil.tz.gettz("US/Eastern")),
+            datetime(2024, 8, 20, tzinfo=dateutil.tz.gettz("US/Eastern")),
+            datetime(2024, 8, 22, 22, 22, 22, tzinfo=timezone.utc),
+            datetime(2024, 8, 20, tzinfo=timezone.utc),
         ),
         (
+            # sequence_as_of is prior to 2024-08-01, so tree_as_of
+            # defaults to current date
             "2023-12-21",
             None,
             datetime(2023, 12, 21, tzinfo=timezone.utc),
-            datetime(2023, 12, 21, tzinfo=timezone.utc),
+            datetime(2025, 7, 13, 16, 21, 34, tzinfo=timezone.utc),
         ),
         (
+            # future dates revert to current date
             "2063-12-21",
             None,
             datetime(2025, 7, 13, 16, 21, 34, tzinfo=timezone.utc),
             datetime(2025, 7, 13, 16, 21, 34, tzinfo=timezone.utc),
         ),
         (
+            # sequence and tree both have future dates, both
+            # revert to current date
             "2063-12-21",
             "2074-07-13",
             datetime(2025, 7, 13, 16, 21, 34, tzinfo=timezone.utc),
+            datetime(2025, 7, 13, 16, 21, 34, tzinfo=timezone.utc),
+        ),
+        (
+            # tree_as_of is a bad date, but sequence_as_of is before
+            # 2024-08-01, so it should revert to current date
+            "2023-07-13",
+            "2074-07",
+            datetime(2023, 7, 13, tzinfo=timezone.utc),
             datetime(2025, 7, 13, 16, 21, 34, tzinfo=timezone.utc),
         ),
     ],
@@ -75,16 +100,16 @@ def test_cladetime_as_of_dates(sequence_as_of, tree_as_of, expected_sequence_as_
 
 @pytest.mark.parametrize("bad_date", ["2020-07-13", "2022-12-32"])
 def test_cladetime_invalid_date(bad_date):
-    with pytest.raises(CladeTimeInvalidDateError):
+    with pytest.warns(CladeTimeDateWarning):
         CladeTime(sequence_as_of=bad_date, tree_as_of=bad_date)
 
 
 def test_cladetime_future_date():
-    with pytest.warns(CladeTimeFutureDateWarning):
+    with pytest.warns(CladeTimeDateWarning):
         CladeTime(sequence_as_of="2063-07-13")
-    with pytest.warns(CladeTimeFutureDateWarning):
+    with pytest.warns(CladeTimeDateWarning):
         CladeTime(tree_as_of="2063-07-13")
-    with pytest.warns(CladeTimeFutureDateWarning):
+    with pytest.warns(CladeTimeDateWarning):
         CladeTime(sequence_as_of="2023-12-31", tree_as_of="2063-07-13")
 
 

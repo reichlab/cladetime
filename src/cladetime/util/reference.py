@@ -1,7 +1,7 @@
 """Functions for retrieving and parsing SARS-CoV-2 phylogenic tree data."""
 
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Tuple
 
@@ -15,6 +15,26 @@ from docker.errors import DockerException
 from cladetime.exceptions import NextcladeNotAvailableError
 
 logger = structlog.get_logger()
+
+
+def _get_date(original_date: datetime | str | None) -> datetime:
+    """Validate an as_of date used to instantiate CladeTime.
+
+    All CladeTime dates are assigned a datetime tzinfo of UTC.
+    """
+    if original_date is None:
+        new_date = datetime.now(timezone.utc)
+    elif isinstance(original_date, datetime):
+        new_date = original_date.replace(tzinfo=timezone.utc)
+    elif isinstance(original_date, str):
+        try:
+            new_date = datetime.strptime(original_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        except ValueError as e:
+            raise ValueError(f"Invalid date format: {original_date}") from e
+
+    new_date = new_date.replace(microsecond=0)
+
+    return new_date
 
 
 def _docker_installed():

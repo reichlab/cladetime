@@ -74,7 +74,7 @@ build-backend = "setuptools.build_meta"
 [tool.pytest.ini_options]
 tmp_path_retention_policy = "none"
 filterwarnings = [
-    "ignore::cladetime.exceptions.CladeTimeFutureDateWarning",
+    "ignore::cladetime.exceptions.CladeTimeDateWarning",
     "ignore::DeprecationWarning",
     'ignore:polars found a filename',
 ]

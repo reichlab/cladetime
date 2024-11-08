@@ -7,9 +7,9 @@ import polars as pl
 import structlog
 
 from cladetime import sequence
-from cladetime.exceptions import CladeTimeFutureDateWarning, CladeTimeInvalidDateError, CladeTimeInvalidURLError
+from cladetime.exceptions import CladeTimeDateWarning, CladeTimeInvalidURLError
 from cladetime.util.config import Config
-from cladetime.util.reference import _get_s3_object_url
+from cladetime.util.reference import _get_date, _get_s3_object_url
 
 logger = structlog.get_logger()
 
@@ -34,7 +34,10 @@ class CladeTime:
         Sets the version of the Nextstrain reference tree that will be
         used by CladeTime. Can be a datetime object or a string in
         YYYY-MM-DD format, both of which will be treated as UTC.
-        The default value is :any:`sequence_as_of<sequence_as_of>`
+        The default value is :any:`sequence_as_of<sequence_as_of>`,
+        unless sequence_as_of is before reference tree availability
+        (2024-08-01), in which case tree_as_of will default to the
+        current time.
 
     Attributes
     ----------
@@ -87,14 +90,30 @@ class CladeTime:
 
     @sequence_as_of.setter
     def sequence_as_of(self, date) -> None:
-        sequence_as_of = self._validate_as_of_date(date)
+        min_sequence_date = self._config.nextstrain_min_seq_date
+        date_warning = False
         utc_now = datetime.now(timezone.utc)
-        if sequence_as_of > utc_now:
-            warnings.warn(
-                f"specified sequence_as_of is in the future, defaulting to current time: {utc_now}",
-                category=CladeTimeFutureDateWarning,
-            )
+
+        try:
+            sequence_as_of = _get_date(date)
+        except ValueError:
             sequence_as_of = utc_now
+            date_warning = True
+
+        if sequence_as_of < min_sequence_date:
+            sequence_as_of = utc_now
+            date_warning = True
+        elif sequence_as_of > utc_now:
+            sequence_as_of = utc_now
+            date_warning = True
+
+        if date_warning:
+            msg = (
+                "\nSequence as_of cannot in the future and cannot be earlier than "
+                f"{min_sequence_date.strftime('%Y-%m-%d')}, defaulting to "
+                f"current date: {sequence_as_of.strftime('%Y-%m-%d')}"
+            )
+            warnings.warn(msg, category=CladeTimeDateWarning)
 
         self._sequence_as_of = sequence_as_of
 
@@ -109,17 +128,39 @@ class CladeTime:
 
     @tree_as_of.setter
     def tree_as_of(self, date) -> None:
+        min_tree_date = self._config.nextstrain_min_ncov_metadata_date
+        date_warning = False
+
         if date is None:
             tree_as_of = self.sequence_as_of
         else:
-            tree_as_of = self._validate_as_of_date(date)
+            try:
+                tree_as_of = _get_date(date)
+            except ValueError:
+                date_warning = True
+                default_field = "sequence_as_of"
+                tree_as_of = self.sequence_as_of
+
         utc_now = datetime.now(timezone.utc)
-        if tree_as_of > utc_now:
-            warnings.warn(
-                f"specified tree_as_of is in the future, defaulting to sequence_as_of: {self.sequence_as_of}",
-                category=CladeTimeFutureDateWarning,
-            )
+        if tree_as_of < min_tree_date and self.sequence_as_of < min_tree_date:
+            default_field = "current date"
+            date_warning = True
+            tree_as_of = utc_now
+        elif tree_as_of < min_tree_date:
+            default_field = "sequence_as_of"
+            date_warning = True
             tree_as_of = self.sequence_as_of
+        elif tree_as_of > utc_now:
+            default_field = "current date"
+            date_warning = True
+            tree_as_of = utc_now
+        if date_warning:
+            msg = (
+                "\nTree as_of cannot in the future and cannot be earlier than "
+                f"{min_tree_date.strftime('%Y-%m-%d')}, defaulting to "
+                f"{default_field}: {tree_as_of.strftime('%Y-%m-%d')}"
+            )
+            warnings.warn(msg, category=CladeTimeDateWarning)
 
         self._tree_as_of = tree_as_of
 
@@ -169,25 +210,3 @@ class CladeTime:
         config = Config()
 
         return config
-
-    def _validate_as_of_date(self, as_of: str) -> datetime:
-        """Validate an as_of date used to instantiate CladeTime.
-
-        All dates used to instantiate CladeTime are assigned
-        a datetime tzinfo of UTC.
-        """
-        if as_of is None:
-            as_of_date = datetime.now(timezone.utc)
-        elif isinstance(as_of, datetime):
-            as_of_date = as_of.replace(tzinfo=timezone.utc)
-        elif isinstance(as_of, str):
-            try:
-                as_of_date = datetime.strptime(as_of, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-            except ValueError as e:
-                raise CladeTimeInvalidDateError(f"Invalid date string: {as_of} (should be in YYYY-MM-DD format)") from e
-
-        as_of_date = as_of_date.replace(microsecond=0)
-        if as_of_date < self._config.nextstrain_min_seq_date:
-            raise CladeTimeInvalidDateError(f"Date must be after May 1, 2023: {as_of_date}")
-
-        return as_of_date
