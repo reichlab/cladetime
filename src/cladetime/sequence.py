@@ -3,6 +3,7 @@
 import lzma
 import os
 import re
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -108,7 +109,11 @@ def _get_ncov_metadata(
 
 
 def filter_metadata(
-    metadata: pl.DataFrame | pl.LazyFrame, cols: list | None = None, state_format: StateFormat = StateFormat.ABBR
+    metadata: pl.DataFrame | pl.LazyFrame,
+    cols: list | None = None,
+    state_format: StateFormat = StateFormat.ABBR,
+    collection_min_date: datetime | None = None,
+    collection_max_date: datetime | None = None,
 ) -> pl.DataFrame | pl.LazyFrame:
     """Apply standard filters to Nextstrain's SARS-CoV-2 sequence metadata.
 
@@ -136,6 +141,12 @@ def filter_metadata(
     state_format : :class:`cladetime.types.StateFormat`
         Optional. The state name format returned in the filtered metadata's
         location column. Defaults to `StateFormat.ABBR`
+    collection_min_date : datetime.datetime | None
+        Optional. Return sequences collected on or after this date.
+        Defaults to None (no minimum date filter).
+    collection_max_date : datetime.datetime | None
+        Optional. Return sequences collected on or before this date.
+        Defaults to None (no maximum date filter).
 
     Returns
     -------
@@ -215,6 +226,12 @@ def filter_metadata(
             pl.col("date").is_not_null(),
         )
     )
+
+    # Apply filters for min and max sequence collection date, if applicable
+    if collection_min_date is not None:
+        filtered_metadata = filtered_metadata.filter(pl.col("date") >= collection_min_date)
+    if collection_max_date is not None:
+        filtered_metadata = filtered_metadata.filter(pl.col("date") <= collection_max_date)
 
     # Create state mappings based on state_format parameter, including a DC alias, since
     # Nextrain's metadata uses a different name than the us package

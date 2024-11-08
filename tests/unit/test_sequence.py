@@ -1,4 +1,5 @@
 import lzma
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -105,6 +106,34 @@ def test_filter_metadata():
         }
     )
     assert actual_schema == expected_schema
+
+
+@pytest.mark.parametrize(
+    "min_date, max_date, expected_rows",
+    [
+        (datetime(2023, 1, 1), None, 2),
+        (None, datetime(2023, 1, 1), 2),
+        (datetime(2022, 1, 3), datetime(2023, 12, 25), 2),
+    ],
+)
+def test_filter_metadata_dates(min_date, max_date, expected_rows):
+    num_test_rows = 7
+    test_genome_metadata = {
+        "date": ["2022-01-01", "2022-01-02", "2022-01-03", "2023-12-25", None, "2023-12-27", "2023-05"],
+        "host": ["Homo sapiens"] * num_test_rows,
+        "country": ["USA", "Argentina", "USA", "USA", "USA", "USA", "USA"],
+        "division": ["Massachusetts"] * num_test_rows,
+        "clade_nextstrain": ["AAA"] * num_test_rows,
+        "location": ["Earth"] * num_test_rows,
+        "strain": ["A1"] * num_test_rows,
+    }
+
+    lf_metadata = pl.LazyFrame(test_genome_metadata)
+    lf_filtered = sequence.filter_metadata(
+        lf_metadata, collection_min_date=min_date, collection_max_date=max_date
+    ).collect()
+
+    assert len(lf_filtered) == expected_rows
 
 
 def test_filter_metadata_state_name():
