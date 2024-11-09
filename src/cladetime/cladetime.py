@@ -1,15 +1,17 @@
 """Class for clade time traveling."""
 
+import tempfile
 import warnings
 from datetime import datetime, timezone
+from pathlib import Path
 
 import polars as pl
 import structlog
 
-from cladetime import sequence
-from cladetime.exceptions import CladeTimeDateWarning, CladeTimeInvalidURLError
+from cladetime import Tree, sequence
+from cladetime.exceptions import CladeTimeDateWarning, CladeTimeInvalidURLError, CladeTimeSequenceWarning
 from cladetime.util.config import Config
-from cladetime.util.reference import _get_date, _get_s3_object_url
+from cladetime.util.reference import _get_clade_assignments, _get_date, _get_nextclade_dataset, _get_s3_object_url
 
 logger = structlog.get_logger()
 
@@ -210,3 +212,102 @@ class CladeTime:
         config = Config()
 
         return config
+
+    def assign_clades(self, sequence_metadata: pl.LazyFrame, output_file: str | None = None) -> pl.DataFrame:
+        """Assign clades to a specified set of sequences.
+
+        For each sequence in a sequence file (.fasta), assign a Nextstrain
+        clade using the Nextclade reference tree that corresponds to the
+        tree_as_of date.
+
+        Parameters
+        ----------
+        sequence_metadata : polars.LazyFrame
+            A Polars LazyFrame of the Nexstrain
+            :external+ncov:doc:`sequence metadata<reference/metadata-fields>`
+            to use for clade assignment.
+        output_file : str | None
+            The full path (including filename) to where the clade assignment
+            output file will be saved. The default value is
+            <home_dir>/cladetime/clade_assignments.csv.
+
+        Returns
+        -------
+        metadata_clades : polars.LazyFrame
+            Nextstrain sequence_metadata with an additional column for clade assignments
+        """
+        if output_file is not None:
+            output_file = Path(output_file)
+        else:
+            output_file = Path.home() / "cladetime" / "clade_assignments.csv"
+
+        # if there are no sequences in the filtered metadata, stop the clade assignment
+        sequence_count = sequence_metadata.select(pl.len()).collect().item()
+        if sequence_count == 0:
+            msg = "sequence_metadata is empty \n" "Stopping clade assignment...."
+            warnings.warn(
+                msg,
+                category=CladeTimeSequenceWarning,
+            )
+            return pl.LazyFrame()
+
+        # if there are many sequences in the filtered metadata, warn that clade assignment will
+        # take a long time and require a lot of resources
+        if sequence_count > self._config.clade_assignment_warning_threshold:
+            msg = (
+                f"Sequence count is {sequence_count}: clade assignment will run longer than usual. "
+                "You may want to run clade assignments on smaller subsets of sequences."
+            )
+            warnings.warn(
+                msg,
+                category=CladeTimeSequenceWarning,
+            )
+
+        logger.info(
+            "Starting clade assignment pipeline",
+            sequence_as_of=self.sequence_as_of,
+            tree_as_of=self.tree_as_of,
+            num_sequence=sequence_count,
+        )
+
+        # drop any clade-related columns from sequence_metadata (if any exists, it will be replaced
+        # by the results of the clade assignment)
+        sequence_metadata = sequence_metadata.drop(
+            [
+                col
+                for col in sequence_metadata.collect_schema().names()
+                if col not in self._config.nextstrain_standard_metadata_fields
+            ]
+        )
+
+        ids = sequence.get_metadata_ids(sequence_metadata)
+        tree = Tree(self.tree_as_of, self.url_sequence)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filtered_sequences = sequence.filter(ids, self.url_sequence, Path(tmpdir))
+            nextclade_dataset = _get_nextclade_dataset(
+                tree.ncov_metadata.get("nextclade_version_num"),
+                tree.ncov_metadata.get("nextclade_dataset_name").lower(),
+                tree.ncov_metadata.get("nextclade_dataset_version"),
+                Path(tmpdir),
+            )
+            logger.info(
+                "Assigning clades",
+                sequences_to_assign=len(ids),
+                nextclade_dataset_version=tree.ncov_metadata.get("nextclade_dataset_version"),
+            )
+            assignments = _get_clade_assignments(
+                tree.ncov_metadata.get("nextclade_version_num"), filtered_sequences, nextclade_dataset, output_file
+            )
+            logger.info(
+                "Clade assignments done",
+                assignment_file=assignments,
+                nextclade_dataset=tree.ncov_metadata.get("nextclade_dataset_version"),
+            )
+
+            assigned_clades = pl.read_csv(assignments, separator=";", infer_schema_length=100000)
+
+        assigned_clades = sequence_metadata.join(
+            assigned_clades.lazy(), left_on="strain", right_on="seqName", how="left"
+        )
+        return assigned_clades

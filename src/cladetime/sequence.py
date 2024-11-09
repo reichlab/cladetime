@@ -15,6 +15,7 @@ from Bio.SeqIO import FastaIO
 from requests import Session
 
 from cladetime.types import StateFormat
+from cladetime.util.reference import _get_date
 from cladetime.util.session import _get_session
 from cladetime.util.timing import time_function
 
@@ -64,6 +65,8 @@ def get_metadata(
     assert path_flag + url_flag == 1, "Specify metadata_path or metadata_url, but not both."
 
     if metadata_url:
+        # pytyon's lzma module doesn't support opening from S3, so metadata_url
+        # must point to a .tsv or a ZSTD-encoded .tsv
         metadata = pl.scan_csv(metadata_url, separator="\t", n_rows=num_rows)
         return metadata
 
@@ -229,8 +232,10 @@ def filter_metadata(
 
     # Apply filters for min and max sequence collection date, if applicable
     if collection_min_date is not None:
+        collection_min_date = _get_date(collection_min_date)
         filtered_metadata = filtered_metadata.filter(pl.col("date") >= collection_min_date)
     if collection_max_date is not None:
+        collection_max_date = _get_date(collection_max_date)
         filtered_metadata = filtered_metadata.filter(pl.col("date") <= collection_max_date)
 
     # Create state mappings based on state_format parameter, including a DC alias, since
@@ -283,7 +288,7 @@ def get_metadata_ids(sequence_metadata: pl.DataFrame | pl.LazyFrame) -> set:
     -------
     set
         A set of
-        :external:doc:`strains<reference/metadata-fields.html#column-1-strain>`
+        :external+ncov:doc:`strains<reference/metadata-fields:column-1-strain>`
 
     Raises
     ------
@@ -351,9 +356,9 @@ def filter(sequence_ids: set, url_sequence: str, output_path: Path) -> Path:
     # alternately, we could expand this function to handle other types
     # of compression schemas (ZSTD) or none at all
 
-    # download the original sequence file
     logger.info("Starting sequence file download", url=url_sequence)
     sequence_file = _download_from_url(session, url_sequence, output_path)
+
     logger.info("Sequence file saved", path=sequence_file)
 
     filtered_sequence_file = output_path / "sequences_filtered.fasta"
