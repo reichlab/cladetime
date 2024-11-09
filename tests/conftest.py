@@ -11,6 +11,24 @@ from cladetime.util.config import Config
 
 
 @pytest.fixture
+def test_sequences():
+    """Return a set of sequences for testing.
+
+    These sequences have clade assignments that changed between
+    2024-08-02 and 2024-11-07, so this is a good set for testing clade
+    assignments over time.
+    """
+    file_name = "test_sequences_updated.fasta"
+    sequences = [
+        "USA/VA-CDC-LC1109961/2024",
+        "USA/MD-CDC-LC1110088/2024",
+        "USA/FL-CDC-LC1109983/2024",
+    ]
+
+    return (file_name, set(sequences))
+
+
+@pytest.fixture
 def ncov_metadata():
     return {
         "schema_version": "v1",

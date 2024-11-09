@@ -7,7 +7,7 @@ import pytest
 from freezegun import freeze_time
 
 from cladetime.cladetime import CladeTime
-from cladetime.exceptions import CladeTimeDateWarning, CladeTimeInvalidURLError, CladeTimeSequenceWarning
+from cladetime.exceptions import CladeTimeDateWarning, CladeTimeInvalidURLError
 
 
 def test_cladetime_no_args():

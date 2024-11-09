@@ -26,6 +26,7 @@ def test_get_clade_assignments(test_file_path, tmp_path):
         "USA/CA-CDPH-A3000000297958/2023",
         "USA/WV064580/2020",
         "USA/PA-CDC-LC1096774/2024",
+        "USA/NJ-CDC-LC1124615/2024",
     }
 
     sequence_file = test_file_path / "test_sequences.fasta"
@@ -38,7 +39,7 @@ def test_get_clade_assignments(test_file_path, tmp_path):
         ["seqName", "clade", "clade_nextstrain", "Nextclade_pango"]
     )
 
-    assert len(assignment_df) == 4
+    assert len(assignment_df) == 5
     assigned_sequence_set = set(assignment_df["seqName"].unique().to_list())
     assert test_sequence_set == assigned_sequence_set
     assert assignment_df["clade"].is_null().any() is False
