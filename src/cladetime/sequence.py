@@ -346,7 +346,7 @@ def get_metadata_ids(sequence_metadata: pl.DataFrame | pl.LazyFrame) -> set:
     -------
     set
         A set of
-        :external+ncov:doc:`strains<reference/metadata-fields:column-1-strain>`
+        :external+ncov:doc:`strains<reference/metadata-fields>`
 
     Raises
     ------

@@ -214,7 +214,7 @@ class CladeTime:
 
         return config
 
-    def assign_clades(self, sequence_metadata: pl.LazyFrame, output_file: str | None = None) -> pl.DataFrame:
+    def assign_clades(self, sequence_metadata: pl.LazyFrame, output_file: str | None = None) -> Clade:
         """Assign clades to a specified set of sequences.
 
         For each sequence in a sequence file (.fasta), assign a Nextstrain

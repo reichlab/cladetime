@@ -142,6 +142,8 @@ nitpick_ignore = [
     ("py:class", "polars.dataframe.frame.DataFrame"),
     ("py:class", "polars.DataFrame"),
     ("py:class", "polars.lazyframe.frame.LazyFrame"),
+    ("py:class", "cladetime._clade.Clade"),
+    ("py:class", "Clade"),
 ]
 
 
