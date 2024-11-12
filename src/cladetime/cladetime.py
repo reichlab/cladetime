@@ -9,6 +9,7 @@ import polars as pl
 import structlog
 
 from cladetime import Tree, sequence
+from cladetime._clade import Clade
 from cladetime.exceptions import CladeTimeDateWarning, CladeTimeInvalidURLError, CladeTimeSequenceWarning
 from cladetime.util.config import Config
 from cladetime.util.reference import _get_clade_assignments, _get_date, _get_nextclade_dataset, _get_s3_object_url
@@ -233,9 +234,11 @@ class CladeTime:
 
         Returns
         -------
-        metadata_clades : polars.LazyFrame
-            Nextstrain sequence_metadata with an additional column for clade assignments
+        metadata_clades : Clade
+            A Clade object that contains detailed and summarized information
+            about clades assigned to the sequences in sequence_metadata.
         """
+        assignment_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
         if output_file is not None:
             output_file = Path(output_file)
         else:
@@ -249,7 +252,7 @@ class CladeTime:
                 msg,
                 category=CladeTimeSequenceWarning,
             )
-            return pl.LazyFrame()
+            return Clade(meta={}, detail=pl.LazyFrame(), summary=pl.LazyFrame())
 
         # if there are many sequences in the filtered metadata, warn that clade assignment will
         # take a long time and require a lot of resources
@@ -307,7 +310,23 @@ class CladeTime:
 
             assigned_clades = pl.read_csv(assignments, separator=";", infer_schema_length=100000)
 
+        # join the assigned clades with the original sequence metadata, create a summarized LazyFrame
+        # of clade counts by location, date, and host, and return both (along with metadata) in a
+        # Clade object
         assigned_clades = sequence_metadata.join(
             assigned_clades.lazy(), left_on="strain", right_on="seqName", how="left"
         )
-        return assigned_clades
+        summarized_clades = sequence.summarize_clades(
+            assigned_clades, group_by=["location", "date", "host", "clade_nextstrain", "country"]
+        )
+        metadata = {
+            "sequence_as_of": self.sequence_as_of,
+            "tree_as_of": self.tree_as_of,
+            "nextclade_dataset_version": tree.ncov_metadata.get("nextclade_dataset_version"),
+            "nextclade_dataset_name": tree.ncov_metadata.get("nextclade_dataset_name"),
+            "nextclade_version_num": tree.ncov_metadata.get("nextclade_version_num"),
+            "assignment_as_of": assignment_date,
+        }
+        metadata_clades = Clade(meta=metadata, detail=assigned_clades, summary=summarized_clades)
+
+        return metadata_clades

@@ -6,8 +6,10 @@ from unittest.mock import MagicMock, patch
 import polars as pl
 import pytest
 from Bio import SeqIO
+from polars.testing import assert_frame_equal
 
 from cladetime import sequence
+from cladetime.exceptions import CladeTimeSequenceWarning
 from cladetime.types import StateFormat
 
 
@@ -247,3 +249,97 @@ def test_filter_empty_fasta(tmpdir):
         seq_filtered = sequence.filter(test_sequence_set, "http://thisismocked.com", tmpdir)
     contents = seq_filtered.read_text(encoding=None)
     assert len(contents) == 0
+
+
+def test_summarize_clades():
+    test_metadata = pl.DataFrame(
+        {
+            "clade_nextstrain": ["11C", "11C", "11C"],
+            "country": ["USA", "USA", "USA"],
+            "date": ["2022-01-01", "2022-01-01", "2023-12-27"],
+            "host": ["Homo sapiens", "Homo sapiens", "Homo sapiens"],
+            "location": ["Utah", "Utah", "Utah"],
+            "strain": ["abc/123", "abc/456", "def/123"],
+            "wombat_count": [2, 22, 222],
+        }
+    )
+
+    expected_summary = pl.DataFrame(
+        {
+            "clade_nextstrain": ["11C", "11C"],
+            "country": ["USA", "USA"],
+            "date": ["2022-01-01", "2023-12-27"],
+            "host": ["Homo sapiens", "Homo sapiens"],
+            "location": ["Utah", "Utah"],
+            "count": [2, 1],
+        }
+    ).cast({"count": pl.UInt32})
+
+    summarized = sequence.summarize_clades(test_metadata)
+    assert_frame_equal(expected_summary, summarized, check_column_order=False, check_row_order=False)
+
+
+def test_summarize_clades_custom_group():
+    test_metadata = pl.LazyFrame(
+        {
+            "clade_nextstrain": ["11C", "11C", "11C"],
+            "country": ["Canada", "USA", "USA"],
+            "date": ["2022-01-01", "2022-01-01", "2023-12-27"],
+            "host": ["Homo sapiens", "Homo sapiens", "Homo sapiens"],
+            "location": ["Utah", "Utah", "Utah"],
+            "strain": ["abc/123", "abc/456", "def/123"],
+            "wombat_count": [2, 22, 22],
+        }
+    )
+
+    expected_summary = pl.LazyFrame(
+        {
+            "country": ["Canada", "USA"],
+            "wombat_count": [2, 22],
+            "count": [1, 2],
+        }
+    ).cast({"count": pl.UInt32})
+
+    summarized = sequence.summarize_clades(test_metadata, group_by=["country", "wombat_count"])
+    assert_frame_equal(expected_summary, summarized, check_column_order=False, check_row_order=False)
+
+    test_metadata = pl.LazyFrame(
+        {
+            "clade_nextstrain": ["11C", "11C", "11C"],
+            "country": ["Canada", "USA", "USA"],
+            "date": ["2022-01-01", "2022-01-01", "2023-12-27"],
+        }
+    )
+
+    expected_summary = pl.LazyFrame(
+        {
+            "clade_nextstrain": ["11C"],
+            "count": [3],
+        }
+    ).cast({"count": pl.UInt32})
+
+    summarized = sequence.summarize_clades(test_metadata, group_by=["clade_nextstrain"])
+    assert_frame_equal(expected_summary, summarized, check_column_order=False, check_row_order=False)
+
+
+def test_summarize_clades_invalid_cols():
+    test_metadata = pl.DataFrame(
+        {
+            "clade_nextstrain": ["11C", "11C", "11C"],
+            "country": ["Canada", "USA", "USA"],
+            "date": ["2022-01-01", "2022-01-01", "2023-12-27"],
+        }
+    )
+    with pytest.warns(CladeTimeSequenceWarning):
+        summarized = sequence.summarize_clades(test_metadata, group_by=["country", "wombat_count"])
+        assert len(summarized) == 0
+
+    test_metadata = pl.DataFrame(
+        {
+            "clade_nextstrain": ["11C", "11C", "11C"],
+            "count": [1, 2, 3],
+        }
+    )
+    with pytest.warns(CladeTimeSequenceWarning):
+        summarized = sequence.summarize_clades(test_metadata, group_by=["clade_nextstrain", "count"])
+        assert len(summarized) == 0
