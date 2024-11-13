@@ -74,7 +74,7 @@ build-backend = "setuptools.build_meta"
 [tool.pytest.ini_options]
 tmp_path_retention_policy = "none"
 filterwarnings = [
-    "ignore::cladetime.exceptions.CladeTimeFutureDateWarning",
+    "ignore::cladetime.exceptions.CladeTimeDateWarning",
     "ignore::DeprecationWarning",
     'ignore:polars found a filename',
 ]
@@ -85,6 +85,10 @@ testpaths = [
 [tool.ruff]
 line-length = 120
 lint.extend-select = ["I"]
+
+[tool.ruff.lint.per-file-ignores]
+# Ignore import formatting rules in `__init__.py`
+"__init__.py" = ["I001"]
 
 [tools.setuptools]
 packages = ["cladetime"]

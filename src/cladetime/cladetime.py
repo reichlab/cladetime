@@ -1,15 +1,18 @@
 """Class for clade time traveling."""
 
+import tempfile
 import warnings
 from datetime import datetime, timezone
+from pathlib import Path
 
 import polars as pl
 import structlog
 
-from cladetime import sequence
-from cladetime.exceptions import CladeTimeFutureDateWarning, CladeTimeInvalidDateError, CladeTimeInvalidURLError
+from cladetime import Tree, sequence
+from cladetime._clade import Clade
+from cladetime.exceptions import CladeTimeDateWarning, CladeTimeInvalidURLError, CladeTimeSequenceWarning
 from cladetime.util.config import Config
-from cladetime.util.reference import _get_s3_object_url
+from cladetime.util.reference import _get_clade_assignments, _get_date, _get_nextclade_dataset, _get_s3_object_url
 
 logger = structlog.get_logger()
 
@@ -34,7 +37,10 @@ class CladeTime:
         Sets the version of the Nextstrain reference tree that will be
         used by CladeTime. Can be a datetime object or a string in
         YYYY-MM-DD format, both of which will be treated as UTC.
-        The default value is :any:`sequence_as_of<sequence_as_of>`
+        The default value is :any:`sequence_as_of<sequence_as_of>`,
+        unless sequence_as_of is before reference tree availability
+        (2024-08-01), in which case tree_as_of will default to the
+        current time.
 
     Attributes
     ----------
@@ -87,14 +93,30 @@ class CladeTime:
 
     @sequence_as_of.setter
     def sequence_as_of(self, date) -> None:
-        sequence_as_of = self._validate_as_of_date(date)
+        min_sequence_date = self._config.nextstrain_min_seq_date
+        date_warning = False
         utc_now = datetime.now(timezone.utc)
-        if sequence_as_of > utc_now:
-            warnings.warn(
-                f"specified sequence_as_of is in the future, defaulting to current time: {utc_now}",
-                category=CladeTimeFutureDateWarning,
-            )
+
+        try:
+            sequence_as_of = _get_date(date)
+        except ValueError:
             sequence_as_of = utc_now
+            date_warning = True
+
+        if sequence_as_of < min_sequence_date:
+            sequence_as_of = utc_now
+            date_warning = True
+        elif sequence_as_of > utc_now:
+            sequence_as_of = utc_now
+            date_warning = True
+
+        if date_warning:
+            msg = (
+                "\nSequence as_of cannot in the future and cannot be earlier than "
+                f"{min_sequence_date.strftime('%Y-%m-%d')}, defaulting to "
+                f"current date: {sequence_as_of.strftime('%Y-%m-%d')}"
+            )
+            warnings.warn(msg, category=CladeTimeDateWarning)
 
         self._sequence_as_of = sequence_as_of
 
@@ -109,17 +131,39 @@ class CladeTime:
 
     @tree_as_of.setter
     def tree_as_of(self, date) -> None:
+        min_tree_date = self._config.nextstrain_min_ncov_metadata_date
+        date_warning = False
+
         if date is None:
             tree_as_of = self.sequence_as_of
         else:
-            tree_as_of = self._validate_as_of_date(date)
+            try:
+                tree_as_of = _get_date(date)
+            except ValueError:
+                date_warning = True
+                default_field = "sequence_as_of"
+                tree_as_of = self.sequence_as_of
+
         utc_now = datetime.now(timezone.utc)
-        if tree_as_of > utc_now:
-            warnings.warn(
-                f"specified tree_as_of is in the future, defaulting to sequence_as_of: {self.sequence_as_of}",
-                category=CladeTimeFutureDateWarning,
-            )
+        if tree_as_of < min_tree_date and self.sequence_as_of < min_tree_date:
+            default_field = "current date"
+            date_warning = True
+            tree_as_of = utc_now
+        elif tree_as_of < min_tree_date:
+            default_field = "sequence_as_of"
+            date_warning = True
             tree_as_of = self.sequence_as_of
+        elif tree_as_of > utc_now:
+            default_field = "current date"
+            date_warning = True
+            tree_as_of = utc_now
+        if date_warning:
+            msg = (
+                "\nTree as_of cannot in the future and cannot be earlier than "
+                f"{min_tree_date.strftime('%Y-%m-%d')}, defaulting to "
+                f"{default_field}: {tree_as_of.strftime('%Y-%m-%d')}"
+            )
+            warnings.warn(msg, category=CladeTimeDateWarning)
 
         self._tree_as_of = tree_as_of
 
@@ -170,24 +214,119 @@ class CladeTime:
 
         return config
 
-    def _validate_as_of_date(self, as_of: str) -> datetime:
-        """Validate an as_of date used to instantiate CladeTime.
+    def assign_clades(self, sequence_metadata: pl.LazyFrame, output_file: str | None = None) -> Clade:
+        """Assign clades to a specified set of sequences.
 
-        All dates used to instantiate CladeTime are assigned
-        a datetime tzinfo of UTC.
+        For each sequence in a sequence file (.fasta), assign a Nextstrain
+        clade using the Nextclade reference tree that corresponds to the
+        tree_as_of date.
+
+        Parameters
+        ----------
+        sequence_metadata : polars.LazyFrame
+            A Polars LazyFrame of the Nexstrain
+            :external+ncov:doc:`sequence metadata<reference/metadata-fields>`
+            to use for clade assignment.
+        output_file : str | None
+            The full path (including filename) to where the clade assignment
+            output file will be saved. The default value is
+            <home_dir>/cladetime/clade_assignments.csv.
+
+        Returns
+        -------
+        metadata_clades : Clade
+            A Clade object that contains detailed and summarized information
+            about clades assigned to the sequences in sequence_metadata.
         """
-        if as_of is None:
-            as_of_date = datetime.now(timezone.utc)
-        elif isinstance(as_of, datetime):
-            as_of_date = as_of.replace(tzinfo=timezone.utc)
-        elif isinstance(as_of, str):
-            try:
-                as_of_date = datetime.strptime(as_of, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-            except ValueError as e:
-                raise CladeTimeInvalidDateError(f"Invalid date string: {as_of} (should be in YYYY-MM-DD format)") from e
+        assignment_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
+        if output_file is not None:
+            output_file = Path(output_file)
+        else:
+            output_file = Path.home() / "cladetime" / "clade_assignments.csv"
 
-        as_of_date = as_of_date.replace(microsecond=0)
-        if as_of_date < self._config.nextstrain_min_seq_date:
-            raise CladeTimeInvalidDateError(f"Date must be after May 1, 2023: {as_of_date}")
+        # if there are no sequences in the filtered metadata, stop the clade assignment
+        sequence_count = sequence_metadata.select(pl.len()).collect().item()
+        if sequence_count == 0:
+            msg = "sequence_metadata is empty \n" "Stopping clade assignment...."
+            warnings.warn(
+                msg,
+                category=CladeTimeSequenceWarning,
+            )
+            return Clade(meta={}, detail=pl.LazyFrame(), summary=pl.LazyFrame())
 
-        return as_of_date
+        # if there are many sequences in the filtered metadata, warn that clade assignment will
+        # take a long time and require a lot of resources
+        if sequence_count > self._config.clade_assignment_warning_threshold:
+            msg = (
+                f"Sequence count is {sequence_count}: clade assignment will run longer than usual. "
+                "You may want to run clade assignments on smaller subsets of sequences."
+            )
+            warnings.warn(
+                msg,
+                category=CladeTimeSequenceWarning,
+            )
+
+        logger.info(
+            "Starting clade assignment pipeline",
+            sequence_as_of=self.sequence_as_of,
+            tree_as_of=self.tree_as_of,
+            num_sequence=sequence_count,
+        )
+
+        # drop any clade-related columns from sequence_metadata (if any exists, it will be replaced
+        # by the results of the clade assignment)
+        sequence_metadata = sequence_metadata.drop(
+            [
+                col
+                for col in sequence_metadata.collect_schema().names()
+                if col not in self._config.nextstrain_standard_metadata_fields
+            ]
+        )
+
+        ids = sequence.get_metadata_ids(sequence_metadata)
+        tree = Tree(self.tree_as_of, self.url_sequence)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filtered_sequences = sequence.filter(ids, self.url_sequence, Path(tmpdir))
+            nextclade_dataset = _get_nextclade_dataset(
+                tree.ncov_metadata.get("nextclade_version_num"),
+                tree.ncov_metadata.get("nextclade_dataset_name").lower(),
+                tree.ncov_metadata.get("nextclade_dataset_version"),
+                Path(tmpdir),
+            )
+            logger.info(
+                "Assigning clades",
+                sequences_to_assign=len(ids),
+                nextclade_dataset_version=tree.ncov_metadata.get("nextclade_dataset_version"),
+            )
+            assignments = _get_clade_assignments(
+                tree.ncov_metadata.get("nextclade_version_num"), filtered_sequences, nextclade_dataset, output_file
+            )
+            logger.info(
+                "Clade assignments done",
+                assignment_file=assignments,
+                nextclade_dataset=tree.ncov_metadata.get("nextclade_dataset_version"),
+            )
+
+            assigned_clades = pl.read_csv(assignments, separator=";", infer_schema_length=100000)
+
+        # join the assigned clades with the original sequence metadata, create a summarized LazyFrame
+        # of clade counts by location, date, and host, and return both (along with metadata) in a
+        # Clade object
+        assigned_clades = sequence_metadata.join(
+            assigned_clades.lazy(), left_on="strain", right_on="seqName", how="left"
+        )
+        summarized_clades = sequence.summarize_clades(
+            assigned_clades, group_by=["location", "date", "host", "clade_nextstrain", "country"]
+        )
+        metadata = {
+            "sequence_as_of": self.sequence_as_of,
+            "tree_as_of": self.tree_as_of,
+            "nextclade_dataset_version": tree.ncov_metadata.get("nextclade_dataset_version"),
+            "nextclade_dataset_name": tree.ncov_metadata.get("nextclade_dataset_name"),
+            "nextclade_version_num": tree.ncov_metadata.get("nextclade_version_num"),
+            "assignment_as_of": assignment_date,
+        }
+        metadata_clades = Clade(meta=metadata, detail=assigned_clades, summary=summarized_clades)
+
+        return metadata_clades

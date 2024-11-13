@@ -1,30 +1,30 @@
-genbank_accession	genbank_accession_rev	unwanted_column	date	host	country	division	clade_nextstrain	location	another unwanted column
-abc	abc.1	i ❤️ wombats	2024-09-01	Homo sapiens	USA	Massachusetts	AA.ZZ	Vulcan	hummus a tune
-abc	abc.1	i ❤️ wombats	2024-09-01	Homo sapiens	USA	Massachusetts	AA.ZZ	Vulcan	hummus a tune
-def	def.1	i ❤️ wombats	2024-09-01	Homo sapiens	USA	Massachusetts	AA.ZZ	Earth	hummus a tune
-ghi	ghi.4	i ❤️ wombats	2024-09-01	Homo sapiens	USA	Utah	BB	Cardassia	hummus a tune
-jkl	jkl.1	i ❤️ wombats	2024-09-01	Homo sapiens	USA	Utah	CC	Bajor	hummus a tune
-mno	mno.1	i ❤️ wombats	2024-09-01	Homo sapiens	Canada	Alberta	DD	Vulcan	hummus a tune
-mno	mno.1	i ❤️ wombats	2024-09-01	marmots	USA	Massachusetts	DD	Vulcan	hummus a tune
-mno	mno.1	i ❤️ wombats	2024-09-01	Homo sapiens	USA	Puerto Rico	DD	Reisa	hummus a tune
-abc	abc.1	i ❤️ wombats	2024-09-08	Homo sapiens	USA	Massachusetts	EE	Vulcan	hummus a tune
-abc	abc.1	i ❤️ wombats	2024-09-08	Homo sapiens	USA	Massachusetts	EE	Vulcan	hummus a tune
-def	def.1	i ❤️ wombats	2024-09-08	Homo sapiens	USA	Massachusetts	DD	Earth	hummus a tune
-ghi	ghi.4	i ❤️ wombats	2024-09-08	Homo sapiens	USA	Utah	AA	Cardassia	hummus a tune
-jkl	jkl.1	i ❤️ wombats	2024-09-08	Homo sapiens	USA	Utah	AA.ZZ	Bajor	hummus a tune
-abc	abc.1	i ❤️ wombats	2024-09-15	Homo sapiens	USA	Massachusetts	AA	Vulcan	hummus a tune
-abc	abc.1	i ❤️ wombats	2024-09-15	Homo sapiens	USA	Massachusetts	AA	Vulcan	hummus a tune
-def	def.1	i ❤️ wombats	2024-09-15	Homo sapiens	USA	Massachusetts	AA	Earth	hummus a tune
-ghi	ghi.4	i ❤️ wombats	2024-09-15	Homo sapiens	USA	Utah	BB	Cardassia	hummus a tune
-jkl	jkl.1	i ❤️ wombats	2024-09-15	Homo sapiens	USA	Utah	CC	Bajor	hummus a tune
-mno	mno.1	i ❤️ wombats	2024-09-15	Homo sapiens	Canada	Mississippi	DD	Earth	hummus a tune
-mno	mno.1	i ❤️ wombats	2024-09-15	marmots	USA	Massachusetts	DD	Cardassia	hummus a tune
-mno	mno.1	i ❤️ wombats	2024-09-15	Homo sapiens	USA	Puerto Rico	DD	Bajor	hummus a tune
-abcd	abcd.1	i ❤️ wombats	2024-09-22	Homo sapiens	USA	Massachusetts	FF	Vulcan	hummus a tune
-abc	abc.1	i ❤️ wombats	2024-09-22	Homo sapiens	USA	Massachusetts	AA	Vulcan	hummus a tune
-def	def.1	i ❤️ wombats	2024-09-22	Homo sapiens	USA	Massachusetts	AA	Earth	hummus a tune
-ghi	ghi.4	i ❤️ wombats	2024-09-22	Homo sapiens	USA	Utah	BB	Cardassia	hummus a tune
-jkl	jkl.1	i ❤️ wombats	2024-09-22	Homo sapiens	USA	Utah	CC	Bajor	hummus a tune
-mno	mno.1	i ❤️ wombats	2024-09-22	Homo sapiens	Canada	Mississippi	FF	Earth	hummus a tune
-mno	mno.1	i ❤️ wombats	2024-09-22	marmots	USA	Massachusetts	FF	Cardassia	hummus a tune
-mno	mno.1	i ❤️ wombats	2024-09-22	Homo sapiens	USA	Guam	FF	Bajor	hummus a tune
+strain	unwanted_column	date	host	country	division	clade_nextstrain	location	another unwanted column
+Abc/SEARCH-123/2022	i ❤️ wombats	2024-09-01	Homo sapiens	USA	Massachusetts	AA.ZZ	Vulcan	hummus a tune
+Abc/VULCAN-123/2022	i ❤️ wombats	2024-09-01	Homo sapiens	USA	Massachusetts	AA.ZZ	Vulcan	hummus a tune
+Def/VULCAN-XXX/3024	i ❤️ wombats	2024-09-01	Homo sapiens	USA	Massachusetts	AA.ZZ	Earth	hummus a tune
+Cardassia/SEARCH-123/2000	i ❤️ wombats	2024-09-01	Homo sapiens	USA	Utah	BB	Cardassia	hummus a tune
+Bajor/STRAIN-789/2450	i ❤️ wombats	2024-09-01	Homo sapiens	USA	Utah	CC	Bajor	hummus a tune
+Canada/STRAIN-WWW/2022	i ❤️ wombats	2024-09-01	Homo sapiens	Canada	Alberta	DD	Vulcan	hummus a tune
+Massachusetts/SEARCH-123/2022	i ❤️ wombats	2024-09-01	marmots	USA	Massachusetts	DD	Vulcan	hummus a tune
+PR/STRAIN-QQQ/2022	i ❤️ wombats	2024-09-01	Homo sapiens	USA	Puerto Rico	DD	Reisa	hummus a tune
+Massachusetts/SEARCH-123/2024	i ❤️ wombats	2024-09-08	Homo sapiens	USA	Massachusetts	EE	Vulcan	hummus a tune
+Massachusetts/SEARCH-123/2025	i ❤️ wombats	2024-09-08	Homo sapiens	USA	Massachusetts	EE	Vulcan	hummus a tune
+Massachusetts/SEARCH-123/2026	i ❤️ wombats	2024-09-08	Homo sapiens	USA	Massachusetts	DD	Earth	hummus a tune
+Cardassia/STRAIN-EEE/3001	i ❤️ wombats	2024-09-08	Homo sapiens	USA	Utah	AA	Cardassia	hummus a tune
+Utah/STRAIN-123/2022	i ❤️ wombats	2024-09-08	Homo sapiens	USA	Utah	AA.ZZ	Bajor	hummus a tune
+Massachusetts/SEARCH-123/2027	i ❤️ wombats	2024-09-15	Homo sapiens	USA	Massachusetts	AA	Vulcan	hummus a tune
+Massachusetts/SEARCH-123/2028	i ❤️ wombats	2024-09-15	Homo sapiens	USA	Massachusetts	AA	Vulcan	hummus a tune
+Massachusetts/SEARCH-123/2029	i ❤️ wombats	2024-09-15	Homo sapiens	USA	Massachusetts	AA	Earth	hummus a tune
+Utah/STRAIN-456/2022	i ❤️ wombats	2024-09-15	Homo sapiens	USA	Utah	BB	Cardassia	hummus a tune
+Utah/STRAIN-456/2023	i ❤️ wombats	2024-09-15	Homo sapiens	USA	Utah	CC	Bajor	hummus a tune
+Canada!/SEARCH-123/2022	i ❤️ wombats	2024-09-15	Homo sapiens	Canada	Mississippi	DD	Earth	hummus a tune
+Massachusetts/SEARCH-456/2025	i ❤️ wombats	2024-09-15	marmots	USA	Massachusetts	DD	Cardassia	hummus a tune
+PR/SEARCH-123/2030	i ❤️ wombats	2024-09-15	Homo sapiens	USA	Puerto Rico	DD	Bajor	hummus a tune
+Massachusetts/SEARCH-456/2026	i ❤️ wombats	2024-09-22	Homo sapiens	USA	Massachusetts	FF	Vulcan	hummus a tune
+Massachusetts/SEARCH-456/2027	i ❤️ wombats	2024-09-22	Homo sapiens	USA	Massachusetts	AA	Vulcan	hummus a tune
+Massachusetts/SEARCH-456/2028	i ❤️ wombats	2024-09-22	Homo sapiens	USA	Massachusetts	AA	Earth	hummus a tune
+Utah/STRAIN-456/2031	i ❤️ wombats	2024-09-22	Homo sapiens	USA	Utah	BB	Cardassia	hummus a tune
+Utah/STRAIN-456/2032	i ❤️ wombats	2024-09-22	Homo sapiens	USA	Utah	CC	Bajor	hummus a tune
+CanadaAgain/STRAIN-JJJ/XXXX	i ❤️ wombats	2024-09-22	Homo sapiens	Canada	Mississippi	FF	Earth	hummus a tune
+Massachusetts/SEARCH-456/2029	i ❤️ wombats	2024-09-22	marmots	USA	Massachusetts	FF	Cardassia	hummus a tune
+Guam/SEARCH-123/2022	i ❤️ wombats	2024-09-22	Homo sapiens	USA	Guam	FF	Bajor	hummus a tune

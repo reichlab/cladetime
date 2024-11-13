@@ -3,6 +3,8 @@
 import lzma
 import os
 import re
+import warnings
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -13,7 +15,9 @@ from Bio import SeqIO
 from Bio.SeqIO import FastaIO
 from requests import Session
 
+from cladetime.exceptions import CladeTimeSequenceWarning
 from cladetime.types import StateFormat
+from cladetime.util.reference import _get_date
 from cladetime.util.session import _get_session
 from cladetime.util.timing import time_function
 
@@ -26,6 +30,7 @@ def _download_from_url(session: Session, url: str, data_path: Path) -> Path:
 
     parsed_url = urlparse(url)
     url_filename = os.path.basename(parsed_url.path)
+    data_path.mkdir(parents=True, exist_ok=True)
     filename = data_path / url_filename
 
     with session.get(url, stream=True) as result:
@@ -62,6 +67,8 @@ def get_metadata(
     assert path_flag + url_flag == 1, "Specify metadata_path or metadata_url, but not both."
 
     if metadata_url:
+        # pytyon's lzma module doesn't support opening from S3, so metadata_url
+        # must point to a .tsv or a ZSTD-encoded .tsv
         metadata = pl.scan_csv(metadata_url, separator="\t", n_rows=num_rows)
         return metadata
 
@@ -107,7 +114,11 @@ def _get_ncov_metadata(
 
 
 def filter_metadata(
-    metadata: pl.DataFrame | pl.LazyFrame, cols: list | None = None, state_format: StateFormat = StateFormat.ABBR
+    metadata: pl.DataFrame | pl.LazyFrame,
+    cols: list | None = None,
+    state_format: StateFormat = StateFormat.ABBR,
+    collection_min_date: datetime | None = None,
+    collection_max_date: datetime | None = None,
 ) -> pl.DataFrame | pl.LazyFrame:
     """Apply standard filters to Nextstrain's SARS-CoV-2 sequence metadata.
 
@@ -131,11 +142,16 @@ def filter_metadata(
     cols : list
         Optional. A list of columns to include in the filtered metadata.
         The default columns included in the filtered metadata are:
-        clade_nextstrain, country, date, division, genbank_accession,
-        genbank_accession_rev, host
+        clade_nextstrain, country, date, division, strain, host
     state_format : :class:`cladetime.types.StateFormat`
         Optional. The state name format returned in the filtered metadata's
         location column. Defaults to `StateFormat.ABBR`
+    collection_min_date : datetime.datetime | None
+        Optional. Return sequences collected on or after this date.
+        Defaults to None (no minimum date filter).
+    collection_max_date : datetime.datetime | None
+        Optional. Return sequences collected on or before this date.
+        Defaults to None (no maximum date filter).
 
     Returns
     -------
@@ -167,19 +183,19 @@ def filter_metadata(
     >>> filtered_metadata = filter_covid_genome_metadata(ct.sequence_metadata)
     >>> filtered_metadata.collect().head(5)
     shape: (5, 7)
-    ┌───────┬─────────┬────────────┬────────────┬────────────┬──────────────┬──────┬
-    │ clade ┆ country ┆ date       ┆ genbank_   ┆ genbank_ac ┆ host         ┆ loca │
-    │       ┆         ┆            ┆ accession  ┆ cession_rev┆              ┆ tion │
-    │ ---   ┆ ---     ┆ ---        ┆ ---        ┆ ---        ┆ ---          ┆ ---  │
-    │ str   ┆ str     ┆ date       ┆ str        ┆ str        ┆ str          ┆ str  │
-    │       ┆         ┆            ┆            ┆            ┆              ┆      │
-    ╞═══════╪═════════╪════════════╪════════════╪════════════╪══════════════╪══════╡
-    │ 22A   ┆ USA     ┆ 2022-07-07 ┆ PP223234   ┆ PP223234.1 ┆ Homo sapiens ┆ AL   │
-    │ 22B   ┆ USA     ┆ 2022-07-02 ┆ PP223435   ┆ PP223435.1 ┆ Homo sapiens ┆ AZ   │
-    │ 22B   ┆ USA     ┆ 2022-07-19 ┆ PP223235   ┆ PP223235.1 ┆ Homo sapiens ┆ AZ   │
-    │ 22B   ┆ USA     ┆ 2022-07-15 ┆ PP223236   ┆ PP223236.1 ┆ Homo sapiens ┆ AZ   │
-    │ 22B   ┆ USA     ┆ 2022-07-20 ┆ PP223237   ┆ PP223237.1 ┆ Homo sapiens ┆ AZ   │
-    └───────┴─────────┴────────────┴────────────┴────────────┴─────────────────────┴
+    ┌───────┬─────────┬────────────┬────────────────────────────┬──────────────┬──────┬
+    │ clade ┆ country ┆ date       ┆ strain                     ┆ host         ┆ loca │
+    │       ┆         ┆            ┆                            ┆              ┆ tion │
+    │ ---   ┆ ---     ┆ ---        ┆ ---                        ┆ ---          ┆ ---  │
+    │ str   ┆ str     ┆ date       ┆ str                        ┆ str          ┆ str  │
+    │       ┆         ┆            ┆                            ┆              ┆      │
+    ╞═══════╪═════════╪════════════╪════════════════════════════╪══════════════╪══════╡
+    │ 22A   ┆ USA     ┆ 2022-07-07 ┆ Alabama/SEARCH-202312/2022 ┆ Homo sapiens ┆ AL   │
+    │ 22B   ┆ USA     ┆ 2022-07-02 ┆ Arizona/SEARCH-201153/2022 ┆ Homo sapiens ┆ AZ   │
+    │ 22B   ┆ USA     ┆ 2022-07-19 ┆ Arizona/SEARCH-203528/2022 ┆ Homo sapiens ┆ AZ   │
+    │ 22B   ┆ USA     ┆ 2022-07-15 ┆ Arizona/SEARCH-203621/2022 ┆ Homo sapiens ┆ AZ   │
+    │ 22B   ┆ USA     ┆ 2022-07-20 ┆ Arizona/SEARCH-203625/2022 ┆ Homo sapiens ┆ AZ   │
+    └───────┴─────────┴────────────┴────────────────────────────┴─────────────────────┴
     """
     if state_format not in StateFormat:
         raise ValueError(f"Invalid state_format. Must be one of: {list(StateFormat.__members__.items())}")
@@ -191,8 +207,7 @@ def filter_metadata(
             "country",
             "date",
             "division",
-            "genbank_accession",
-            "genbank_accession_rev",
+            "strain",
             "host",
         ]
 
@@ -217,6 +232,14 @@ def filter_metadata(
         )
     )
 
+    # Apply filters for min and max sequence collection date, if applicable
+    if collection_min_date is not None:
+        collection_min_date = _get_date(collection_min_date)
+        filtered_metadata = filtered_metadata.filter(pl.col("date") >= collection_min_date)
+    if collection_max_date is not None:
+        collection_max_date = _get_date(collection_max_date)
+        filtered_metadata = filtered_metadata.filter(pl.col("date") <= collection_max_date)
+
     # Create state mappings based on state_format parameter, including a DC alias, since
     # Nextrain's metadata uses a different name than the us package
     if state_format == StateFormat.FIPS:
@@ -237,7 +260,12 @@ def filter_metadata(
 
 
 def get_clade_counts(filtered_metadata: pl.LazyFrame) -> pl.LazyFrame:
-    """Return a count of clades by location and date."""
+    """Return a count of clades by location and date.
+
+    Notes:
+    ------
+    Deprecated in favor of summarize_clades
+    """
 
     cols = [
         "clade",
@@ -252,11 +280,63 @@ def get_clade_counts(filtered_metadata: pl.LazyFrame) -> pl.LazyFrame:
     return counts
 
 
+def summarize_clades(sequence_metadata: pl.LazyFrame, group_by: list | None = None) -> pl.LazyFrame:
+    """Return clade counts summarized by specific sequence metadata columns.
+
+    Parameters
+    ----------
+    sequence_metadata : :class:`polars.DataFrame` or :class:`polars.LazyFrame`
+        A Polars DataFrame or LazyFrame that represents
+        Nextstrain SARS-CoV-2 sequence metadata
+    group_by : list
+        Optional. A list of columns to group the clade counts by. Defaults
+        to ["clade_nextstrain", "country", "date", "location", "host"]
+
+    Returns
+    -------
+    :class:`polars.DataFrame` | :class:`polars.LazyFrame`
+        A Frame that summarizes clade counts by the specified columns. If sequence_metadata
+        is a LazyFrame, returns a LazyFrame. Otherwise, returns a DataFrame.
+
+    Raises
+    ------
+    CladeTimeSequenceWarning
+        If group_by contains a column name that is not in sequence_metadata or
+        if group_by contains a column named 'count'
+    """
+    if group_by is None:
+        group_by = ["clade_nextstrain", "country", "date", "location", "host"]
+
+    # Validate group_by columns
+    metadata_cols = sequence_metadata.collect_schema().names()
+    warning_msg = ""
+    if not all(col in metadata_cols for col in group_by):
+        warning_msg = warning_msg + f"Invalid group_by columns: {group_by} \n"
+    if "count" in group_by:
+        warning_msg = warning_msg + "Group_by cannot contain 'count' column \n"
+    if len(warning_msg) > 0:
+        warnings.warn(
+            warning_msg[0],
+            category=CladeTimeSequenceWarning,
+        )
+        if isinstance(sequence_metadata, pl.LazyFrame):
+            return pl.LazyFrame()
+        else:
+            return pl.DataFrame()
+
+    counts = (
+        sequence_metadata.select(group_by).group_by(group_by).agg(pl.len().alias("count")).cast({"count": pl.UInt32})
+    )
+
+    return counts
+
+
 def get_metadata_ids(sequence_metadata: pl.DataFrame | pl.LazyFrame) -> set:
     """Return sequence IDs for a specified set of Nextstrain sequence metadata.
 
     For a given input of GenBank-based SARS-Cov-2 sequence metadata (as
-    published by Nextstrain), return a set of GenBank accession numbers.
+    published by Nextstrain), return a set of strains. This function is
+    mostly used to filter a sequence file.
 
     Parameters
     ----------
@@ -265,21 +345,23 @@ def get_metadata_ids(sequence_metadata: pl.DataFrame | pl.LazyFrame) -> set:
     Returns
     -------
     set
-        A set of GenBank accession numbers
+        A set of
+        :external+ncov:doc:`strains<reference/metadata-fields>`
 
     Raises
     ------
     ValueError
-        If the sequence metadata does not contain a genbank_accession column
+        If the sequence metadata does not contain a strain column
     """
+    logger.info("Collecting sequence IDs from metadata")
     metadata_columns = sequence_metadata.collect_schema().names()
-    if "genbank_accession" not in metadata_columns:
-        logger.error("Missing column from sequence_metadata", column="genbank_accession")
-        raise ValueError("Sequence metadata does not contain a genbank_accession column.")
-    sequences = sequence_metadata.select("genbank_accession").unique()
+    if "strain" not in metadata_columns:
+        logger.error("Missing column from sequence_metadata", column="strain")
+        raise ValueError("Sequence metadata does not contain a strain column.")
+    sequences = sequence_metadata.select("strain").unique()
     if isinstance(sequence_metadata, pl.LazyFrame):
         sequences = sequences.collect()  # type: ignore
-    seq_set = set(sequences["genbank_accession"].to_list())  # type: ignore
+    seq_set = set(sequences["strain"].to_list())  # type: ignore
 
     return seq_set
 
@@ -302,17 +384,18 @@ def parse_sequence_assignments(df_assignments: pl.DataFrame) -> pl.DataFrame:
     return df_assignments
 
 
+@time_function
 def filter(sequence_ids: set, url_sequence: str, output_path: Path) -> Path:
     """Filter a fasta file against a specific set of sequences.
 
     Download a sequence file (in FASTA format) from Nexstrain, filter
-    it against a set of specific sequence ids (GenBank accession numbers),
-    and write the filtered sequences to a new file.
+    it against a set of specific strains, and write the filtered
+    sequences to a new file.
 
     Parameters
     ----------
     sequence_ids : set
-        GenBank accession numbers used to filter the sequence file
+        Strains used to filter the sequence file
     url_sequence : str
         The URL to a file of SARS-CoV-2 GenBank sequences published by Nexstrain.
         The file is should be in .fasta format using the lzma compression
@@ -331,9 +414,9 @@ def filter(sequence_ids: set, url_sequence: str, output_path: Path) -> Path:
     # alternately, we could expand this function to handle other types
     # of compression schemas (ZSTD) or none at all
 
-    # download the original sequence file
     logger.info("Starting sequence file download", url=url_sequence)
     sequence_file = _download_from_url(session, url_sequence, output_path)
+
     logger.info("Sequence file saved", path=sequence_file)
 
     filtered_sequence_file = output_path / "sequences_filtered.fasta"

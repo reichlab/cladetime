@@ -1,5 +1,4 @@
 import zipfile
-from pathlib import Path
 
 import polars as pl
 import pytest
@@ -7,15 +6,6 @@ import pytest
 from cladetime.util.reference import _docker_installed, _get_clade_assignments, _get_nextclade_dataset
 
 docker_enabled = _docker_installed()
-
-
-@pytest.fixture
-def test_file_path() -> Path:
-    """
-    Return path to the unit test files.
-    """
-    test_file_path = Path(__file__).parents[1].joinpath("data")
-    return test_file_path
 
 
 @pytest.mark.skipif(not docker_enabled, reason="Docker is not installed")
@@ -36,19 +26,20 @@ def test_get_clade_assignments(test_file_path, tmp_path):
         "USA/CA-CDPH-A3000000297958/2023",
         "USA/WV064580/2020",
         "USA/PA-CDC-LC1096774/2024",
+        "USA/NJ-CDC-LC1124615/2024",
     }
 
     sequence_file = test_file_path / "test_sequences.fasta"
     nextclade_dataset = test_file_path / "test_nextclade_dataset.zip"
     # _get_clade_assignments should create the output directory if it doesn't exist
-    output_path = tmp_path / "clade_assignments"
+    output_file = tmp_path / "clade_assignments" / "nextclade_assignments.csv"
 
-    assignment_file = _get_clade_assignments("latest", sequence_file, nextclade_dataset, output_path)
+    assignment_file = _get_clade_assignments("latest", sequence_file, nextclade_dataset, output_file)
     assignment_df = pl.read_csv(assignment_file, separator=";").select(
         ["seqName", "clade", "clade_nextstrain", "Nextclade_pango"]
     )
 
-    assert len(assignment_df) == 4
+    assert len(assignment_df) == 5
     assigned_sequence_set = set(assignment_df["seqName"].unique().to_list())
     assert test_sequence_set == assigned_sequence_set
     assert assignment_df["clade"].is_null().any() is False
@@ -59,9 +50,9 @@ def test_get_clade_assignments_no_matches(test_file_path, tmp_path):
     sequence_file = test_file_path / "test_sequences_fake.fasta"
     nextclade_dataset = test_file_path / "test_nextclade_dataset.zip"
     # _get_clade_assignments should create the output directory if it doesn't exist
-    output_path = tmp_path / "clade_assignments"
+    output_file = tmp_path / "clade_assignments" / "nextclade_assignments.csv"
 
-    assignment_file = _get_clade_assignments("latest", sequence_file, nextclade_dataset, output_path)
+    assignment_file = _get_clade_assignments("latest", sequence_file, nextclade_dataset, output_file)
     assignment_df = pl.read_csv(assignment_file, separator=";").select(
         ["seqName", "clade", "clade_nextstrain", "Nextclade_pango"]
     )

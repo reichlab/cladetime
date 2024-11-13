@@ -1,4 +1,4 @@
-from dataclasses import InitVar, asdict, dataclass, field
+from dataclasses import InitVar, asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from pprint import pprint
@@ -22,11 +22,34 @@ class Config:
     nextclade_data_url_version = "v3"
     nextclade_base_url: str = "https://nextstrain.org/nextclade/sars-cov-2"
     nextclade_input_tree_name: str = "tree.json"
-    reference_tree_file: Path | None = None
-    root_sequence_file: Path | None = None
-    assignment_no_metadata_file: Path | None = None
-    assignment_file: Path | None = None
-    assignment_file_columns: list[str] = field(default_factory=list)
+    clade_assignment_warning_threshold: int = 10000
+    # standard metadata fields for Nextstrain ncov pipeline (i.e., excludes clade assignments)
+    # https://docs.nextstrain.org/projects/ncov/en/latest/reference/metadata-fields.html
+    nextstrain_standard_metadata_fields = [
+        "strain",
+        "virus",
+        "gisaid_epi_isl",
+        "genbank_accession",
+        "date",
+        "region",
+        "country",
+        "division",
+        "location",
+        "region_exposure",
+        "country_exposure",
+        "division_exposure",
+        "segment",
+        "length",
+        "host",
+        "age",
+        "sex",
+        "originating_lab",
+        "submitting_lab",
+        "authors",
+        "url",
+        "title",
+        "date_submitted",
+    ]
 
     def __post_init__(
         self,

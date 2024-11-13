@@ -3,8 +3,9 @@ import sys
 
 import structlog
 
-from cladetime.cladetime import CladeTime
+# must import Tree before CladeTime
 from cladetime.tree import Tree
+from cladetime.cladetime import CladeTime
 from cladetime.util.reference import _docker_installed
 
 __all__ = ["CladeTime", "Tree"]

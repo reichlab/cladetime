@@ -1,12 +1,15 @@
 import lzma
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import polars as pl
 import pytest
 from Bio import SeqIO
+from polars.testing import assert_frame_equal
 
 from cladetime import sequence
+from cladetime.exceptions import CladeTimeSequenceWarning
 from cladetime.types import StateFormat
 
 
@@ -46,8 +49,7 @@ def test_get_metadata(test_file_path, metadata_file):
         "country",
         "division",
         "clade_nextstrain",
-        "genbank_accession",
-        "genbank_accession_rev",
+        "strain",
     }
     assert expected_cols.issubset(metadata_cols)
 
@@ -81,8 +83,7 @@ def test_filter_metadata():
         "division": ["Alaska", "Maine", "Guam", "Puerto Rico", "Utah", "Washington DC", "Pennsylvania"],
         "clade_nextstrain": ["AAA", "BBB", "CCC", "DDD", "EEE", "FFF", "FFF"],
         "location": ["Vulcan", "Reisa", "Bajor", "Deep Space 9", "Earth", "Cardassia", "Cardassia"],
-        "genbank_accession": ["A1", "A2", "B1", "B2", "C1", "C2", "C2"],
-        "genbank_accession_rev": ["A1.1", "A2.4", "B1.1", "B2.5", "C1.1", "C2.1", "C2.1"],
+        "strain": ["A1", "A2", "B1", "B2", "C1", "C2", "C2"],
         "unwanted_column": [1, 2, 3, 4, 5, 6, 7],
     }
 
@@ -101,13 +102,40 @@ def test_filter_metadata():
             "clade": pl.String,
             "country": pl.String,
             "date": pl.Date,
-            "genbank_accession": pl.String,
-            "genbank_accession_rev": pl.String,
+            "strain": pl.String,
             "host": pl.String,
             "location": pl.String,
         }
     )
     assert actual_schema == expected_schema
+
+
+@pytest.mark.parametrize(
+    "min_date, max_date, expected_rows",
+    [
+        (datetime(2023, 1, 1), None, 2),
+        (None, datetime(2023, 1, 1), 2),
+        (datetime(2022, 1, 3), datetime(2023, 12, 25), 2),
+    ],
+)
+def test_filter_metadata_dates(min_date, max_date, expected_rows):
+    num_test_rows = 7
+    test_genome_metadata = {
+        "date": ["2022-01-01", "2022-01-02", "2022-01-03", "2023-12-25", None, "2023-12-27", "2023-05"],
+        "host": ["Homo sapiens"] * num_test_rows,
+        "country": ["USA", "Argentina", "USA", "USA", "USA", "USA", "USA"],
+        "division": ["Massachusetts"] * num_test_rows,
+        "clade_nextstrain": ["AAA"] * num_test_rows,
+        "location": ["Earth"] * num_test_rows,
+        "strain": ["A1"] * num_test_rows,
+    }
+
+    lf_metadata = pl.LazyFrame(test_genome_metadata)
+    lf_filtered = sequence.filter_metadata(
+        lf_metadata, collection_min_date=min_date, collection_max_date=max_date
+    ).collect()
+
+    assert len(lf_filtered) == expected_rows
 
 
 def test_filter_metadata_state_name():
@@ -118,8 +146,7 @@ def test_filter_metadata_state_name():
         "country": ["USA"] * num_test_rows,
         "clade_nextstrain": ["AAA"] * num_test_rows,
         "location": ["Earth"] * num_test_rows,
-        "genbank_accession": ["A1"] * num_test_rows,
-        "genbank_accession_rev": ["A1.1"] * num_test_rows,
+        "strain": ["A1"] * num_test_rows,
         "division": ["Alaska", "Puerto Rico", "Washington DC", "Fake State"],
     }
 
@@ -142,8 +169,7 @@ def test_filter_metadata_state_fips():
         "country": ["USA"] * num_test_rows,
         "clade_nextstrain": ["AAA"] * num_test_rows,
         "location": ["Earth"] * num_test_rows,
-        "genbank_accession": ["A1"] * num_test_rows,
-        "genbank_accession_rev": ["A1.1"] * num_test_rows,
+        "strain": ["A1"] * num_test_rows,
         "division": ["Massachusetts", "Puerto Rico", "Washington DC", "Fake State"],
     }
 
@@ -160,7 +186,7 @@ def test_filter_metadata_state_fips():
 
 def test_get_metadata_ids():
     metadata = {
-        "genbank_accession": ["A1", "A2", "A2", "A4"],
+        "strain": ["A1", "A2", "A2", "A4"],
         "country": ["USA", "Canada", "Mexico", "Brazil"],
         "location": ["Earth", "Earth", "Earth", "Earth"],
     }
@@ -223,3 +249,97 @@ def test_filter_empty_fasta(tmpdir):
         seq_filtered = sequence.filter(test_sequence_set, "http://thisismocked.com", tmpdir)
     contents = seq_filtered.read_text(encoding=None)
     assert len(contents) == 0
+
+
+def test_summarize_clades():
+    test_metadata = pl.DataFrame(
+        {
+            "clade_nextstrain": ["11C", "11C", "11C"],
+            "country": ["USA", "USA", "USA"],
+            "date": ["2022-01-01", "2022-01-01", "2023-12-27"],
+            "host": ["Homo sapiens", "Homo sapiens", "Homo sapiens"],
+            "location": ["Utah", "Utah", "Utah"],
+            "strain": ["abc/123", "abc/456", "def/123"],
+            "wombat_count": [2, 22, 222],
+        }
+    )
+
+    expected_summary = pl.DataFrame(
+        {
+            "clade_nextstrain": ["11C", "11C"],
+            "country": ["USA", "USA"],
+            "date": ["2022-01-01", "2023-12-27"],
+            "host": ["Homo sapiens", "Homo sapiens"],
+            "location": ["Utah", "Utah"],
+            "count": [2, 1],
+        }
+    ).cast({"count": pl.UInt32})
+
+    summarized = sequence.summarize_clades(test_metadata)
+    assert_frame_equal(expected_summary, summarized, check_column_order=False, check_row_order=False)
+
+
+def test_summarize_clades_custom_group():
+    test_metadata = pl.LazyFrame(
+        {
+            "clade_nextstrain": ["11C", "11C", "11C"],
+            "country": ["Canada", "USA", "USA"],
+            "date": ["2022-01-01", "2022-01-01", "2023-12-27"],
+            "host": ["Homo sapiens", "Homo sapiens", "Homo sapiens"],
+            "location": ["Utah", "Utah", "Utah"],
+            "strain": ["abc/123", "abc/456", "def/123"],
+            "wombat_count": [2, 22, 22],
+        }
+    )
+
+    expected_summary = pl.LazyFrame(
+        {
+            "country": ["Canada", "USA"],
+            "wombat_count": [2, 22],
+            "count": [1, 2],
+        }
+    ).cast({"count": pl.UInt32})
+
+    summarized = sequence.summarize_clades(test_metadata, group_by=["country", "wombat_count"])
+    assert_frame_equal(expected_summary, summarized, check_column_order=False, check_row_order=False)
+
+    test_metadata = pl.LazyFrame(
+        {
+            "clade_nextstrain": ["11C", "11C", "11C"],
+            "country": ["Canada", "USA", "USA"],
+            "date": ["2022-01-01", "2022-01-01", "2023-12-27"],
+        }
+    )
+
+    expected_summary = pl.LazyFrame(
+        {
+            "clade_nextstrain": ["11C"],
+            "count": [3],
+        }
+    ).cast({"count": pl.UInt32})
+
+    summarized = sequence.summarize_clades(test_metadata, group_by=["clade_nextstrain"])
+    assert_frame_equal(expected_summary, summarized, check_column_order=False, check_row_order=False)
+
+
+def test_summarize_clades_invalid_cols():
+    test_metadata = pl.DataFrame(
+        {
+            "clade_nextstrain": ["11C", "11C", "11C"],
+            "country": ["Canada", "USA", "USA"],
+            "date": ["2022-01-01", "2022-01-01", "2023-12-27"],
+        }
+    )
+    with pytest.warns(CladeTimeSequenceWarning):
+        summarized = sequence.summarize_clades(test_metadata, group_by=["country", "wombat_count"])
+        assert len(summarized) == 0
+
+    test_metadata = pl.DataFrame(
+        {
+            "clade_nextstrain": ["11C", "11C", "11C"],
+            "count": [1, 2, 3],
+        }
+    )
+    with pytest.warns(CladeTimeSequenceWarning):
+        summarized = sequence.summarize_clades(test_metadata, group_by=["clade_nextstrain", "count"])
+        assert len(summarized) == 0

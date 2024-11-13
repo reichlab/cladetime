@@ -39,6 +39,7 @@ github_username = "reichlab"
 github_repository = "cladetime"
 
 intersphinx_mapping = {
+    "ncov": ("https://docs.nextstrain.org/projects/ncov/en/latest/", None),
     "nextstrain": ("https://docs.nextstrain.org/en/latest", None),
     "nextclade": ("https://docs.nextstrain.org/projects/nextclade/en/stable/", None),
     "polars": ("https://docs.pola.rs/api/python/stable", None),
@@ -141,6 +142,8 @@ nitpick_ignore = [
     ("py:class", "polars.dataframe.frame.DataFrame"),
     ("py:class", "polars.DataFrame"),
     ("py:class", "polars.lazyframe.frame.LazyFrame"),
+    ("py:class", "cladetime._clade.Clade"),
+    ("py:class", "Clade"),
 ]
 
 

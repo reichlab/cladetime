@@ -53,8 +53,7 @@ def get_sequence_metadata(metadata: pl.DataFrame, sequence_collection_date: date
         "country",
         "date",
         "division",
-        "genbank_accession",
-        "genbank_accession_rev",
+        "strain",
         "host",
     ]
 
