@@ -9,7 +9,6 @@ from Bio import SeqIO
 from polars.testing import assert_frame_equal
 
 from cladetime import sequence
-from cladetime.exceptions import CladeTimeSequenceWarning
 from cladetime.types import StateFormat
 
 
@@ -320,26 +319,3 @@ def test_summarize_clades_custom_group():
 
     summarized = sequence.summarize_clades(test_metadata, group_by=["clade_nextstrain"])
     assert_frame_equal(expected_summary, summarized, check_column_order=False, check_row_order=False)
-
-
-def test_summarize_clades_invalid_cols():
-    test_metadata = pl.DataFrame(
-        {
-            "clade_nextstrain": ["11C", "11C", "11C"],
-            "country": ["Canada", "USA", "USA"],
-            "date": ["2022-01-01", "2022-01-01", "2023-12-27"],
-        }
-    )
-    with pytest.warns(CladeTimeSequenceWarning):
-        summarized = sequence.summarize_clades(test_metadata, group_by=["country", "wombat_count"])
-        assert len(summarized) == 0
-
-    test_metadata = pl.DataFrame(
-        {
-            "clade_nextstrain": ["11C", "11C", "11C"],
-            "count": [1, 2, 3],
-        }
-    )
-    with pytest.warns(CladeTimeSequenceWarning):
-        summarized = sequence.summarize_clades(test_metadata, group_by=["clade_nextstrain", "count"])
-        assert len(summarized) == 0
