@@ -157,3 +157,20 @@ of waiting several minutes for the pull request to generate a preview.
     ```bash
     uv run sphinx-autobuild docs docs/_build/html
     ```
+
+If you need to add or update any dependencies related to the documentation
+(for example, adding a new Sphinx extension), the process is similar to
+adding a new project dependency as described above:
+
+1. Add the dependency to the `docs` section of [`pyproject.toml`](pyproject.toml).
+2. Update the requirements files:
+
+    ```bash
+    uv pip compile pyproject.toml --extra docs -o requirements/requirements-docs.txt
+    ```
+
+3. Install the new dependency:
+
+    ```bash
+    uv pip install -r requirements/requirements-docs.txt
+    ```
