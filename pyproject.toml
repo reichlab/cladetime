@@ -52,6 +52,7 @@ docs = [
     "matplotlib",
     "myst-parser",
     "sphinx>=5.0,<6.0",
+    "sphinx-autobuild",
     "sphinx-copybutton",
     "sphinx-github-style",
     "sphinxext-opengraph",

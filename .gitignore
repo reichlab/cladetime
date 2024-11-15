@@ -1,5 +1,8 @@
 .DS_Store
 
+# We haven't made the full switch to uv-style lockfiles just yet
+uv.lock
+
 # Keep intermediate variant pipeline outputs out of git,
 # but include the final clade assignment file
 /data/*

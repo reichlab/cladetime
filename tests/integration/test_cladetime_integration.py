@@ -178,6 +178,7 @@ def test_assign_date_filters(test_file_path, tmp_path, test_sequences, min_date,
     assert len(assigned_clades.detail.collect()) == expected_rows
 
 
+@pytest.mark.skipif(not docker_enabled, reason="Docker is not installed")
 def test_assign_too_many_sequences_warning(tmp_path, test_file_path, test_sequences):
     sequence_file, sequence_set = test_sequences
 
