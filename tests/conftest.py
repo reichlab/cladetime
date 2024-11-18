@@ -11,6 +11,14 @@ from moto import mock_aws
 from cladetime.util.config import Config
 
 
+@pytest.fixture(scope="function")
+def demo_mode(monkeypatch):
+    "Set demo mode to True for tests using the Nextstrain 100K sequence files."
+    demo_mode = "true"
+    monkeypatch.setenv("CLADETIME_DEMO", demo_mode)
+    yield demo_mode
+
+
 @pytest.fixture
 def test_sequences():
     """Return a set of sequences for testing.
