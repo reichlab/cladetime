@@ -53,16 +53,29 @@ def test_get_metadata(test_file_path, metadata_file):
     assert expected_cols.issubset(metadata_cols)
 
 
-@pytest.mark.parametrize("metadata_file", ["metadata.tsv.zst", "metadata.tsv.xz"])
-def test_get_metadata_url(s3_setup, test_file_path, metadata_file):
+def test_get_metadata_url(s3_setup):
     """
     Test get_metadata when used with an S3 URL instead of a local file.
     Needs additional research into moto and S3 url access.
     """
     s3_client, bucket_name, s3_object_keys = s3_setup
 
-    url = f"https://{bucket_name}.s3.amazonaws.com/data/object-key/{metadata_file}"
-    metadata = sequence.get_metadata(metadata_url=url)
+    # get metadata file from S3 using ZSTD compression
+    presigned_url = s3_client.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": bucket_name, "Key": s3_object_keys["sequence_metadata"]},
+        ExpiresIn=3600,
+    )
+    metadata = sequence.get_metadata(metadata_url=presigned_url)
+    assert isinstance(metadata, pl.LazyFrame)
+
+    # get metadata file from S3 using XZ compression
+    presigned_url = s3_client.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": bucket_name, "Key": s3_object_keys["sequence_metadata_xz"]},
+        ExpiresIn=3600,
+    )
+    metadata = sequence.get_metadata(metadata_url=presigned_url)
     assert isinstance(metadata, pl.LazyFrame)
 
 
