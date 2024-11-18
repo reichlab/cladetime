@@ -1,60 +1,28 @@
-import lzma
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import polars as pl
 import pytest
-import requests
 from freezegun import freeze_time
 from polars.testing import assert_frame_equal, assert_frame_not_equal
 
 from cladetime import CladeTime, sequence
 from cladetime.exceptions import CladeTimeSequenceWarning
-from cladetime.util.config import Config
-from cladetime.util.reference import _docker_installed, _get_s3_object_url
+from cladetime.util.reference import _docker_installed
 
 docker_enabled = _docker_installed()
 
 
-@pytest.fixture()
-def metadata_100k(tmp_path) -> pl.LazyFrame:
-    "Return metadata for Nextstain's 100k samples as of 2024-11-01"
-    config = Config()
-    metadata_url = _get_s3_object_url(
-        bucket_name=config.nextstrain_ncov_bucket,
-        object_key="files/ncov/open/100k/metadata.tsv.xz",
-        date=datetime(2024, 11, 1, tzinfo=timezone.utc),
-    )[1]
-
-    # download test metadata for Nextstrain's 100k samples (we can't use polars to scan it from
-    # s3 like we usually do, because the 100k samples don't have ZSTD-compressed versions
-    # and lmza.open doesn't support https)
-    response = requests.get(metadata_url)
-    response.raise_for_status()
-    with open(tmp_path / "metadata.tsv.xz", "wb") as file:
-        file.write(response.content)
-    metadata = pl.read_csv(lzma.open(tmp_path / "metadata.tsv.xz"), separator="\t", infer_schema_length=100000).lazy()
-
-    return metadata
-
-
 @pytest.mark.skipif(not docker_enabled, reason="Docker is not installed")
-def test_cladetime_assign_clades(tmp_path, metadata_100k):
-    config = Config()
+def test_cladetime_assign_clades(tmp_path, demo_mode):
+    # demo_mode fixture overrides CladeTime config to use Nextstrain's 100k sample
+    # sequence and sequence metadata instead of the entire universe of SARS-CoV-2 sequences
     assignment_file = tmp_path / "assignments.csv"
 
     with freeze_time("2024-11-01"):
         ct = CladeTime()
 
-        # override link to sequence .fasta to test against the 100k sample dataset
-        sequence_url = _get_s3_object_url(
-            bucket_name=config.nextstrain_ncov_bucket,
-            object_key="files/ncov/open/100k/sequences.fasta.xz",
-            date=datetime(2024, 11, 1, tzinfo=timezone.utc),
-        )[1]
-        ct.url_sequence = sequence_url
-
-        metadata_filtered = sequence.filter_metadata(metadata_100k, collection_min_date="2024-10-01")
+        metadata_filtered = sequence.filter_metadata(ct.sequence_metadata, collection_min_date="2024-10-01")
 
         # store clade assignments as they exist on the metadata file downloaded from Nextstrain
         original_clade_assignments = metadata_filtered.select(["strain", "clade"])

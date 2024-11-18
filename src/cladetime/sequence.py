@@ -4,10 +4,12 @@ import lzma
 import os
 import re
 from datetime import datetime
+from io import BytesIO
 from pathlib import Path
 from urllib.parse import urlparse
 
 import polars as pl
+import requests
 import structlog
 import us
 from Bio import SeqIO
@@ -65,18 +67,38 @@ def get_metadata(
     assert path_flag + url_flag == 1, "Specify metadata_path or metadata_url, but not both."
 
     if metadata_url:
-        # pytyon's lzma module doesn't support opening from S3, so metadata_url
-        # must point to a .tsv or a ZSTD-encoded .tsv
-        metadata = pl.scan_csv(metadata_url, separator="\t", n_rows=num_rows)
+        # get sequence metadata from a URL
+        file_suffix = Path(urlparse(metadata_url).path).suffix
+        if file_suffix in [".tsv", ".zst"]:
+            metadata = pl.scan_csv(metadata_path, separator="\t", n_rows=num_rows)
+        elif file_suffix == ".xz":
+            # pytyon's lzma module doesn't support opening via HTTP, so use requests
+            # to download the file in chunks and then decompress it
+            with requests.get(metadata_url, stream=True) as response:
+                response.raise_for_status()
+                decompressor = lzma.LZMADecompressor()
+                buffer = BytesIO()
+                for chunk in response.iter_content(chunk_size=24576):
+                    if chunk:
+                        decompressed_chunk = decompressor.decompress(chunk)
+                        buffer.write(decompressed_chunk)
+                buffer.seek(0)
+                metadata = pl.scan_csv(buffer, separator="\t", n_rows=num_rows)
+        else:
+            raise ValueError(f"Unsupported compression type: {file_suffix}")
+
         return metadata
 
     if metadata_path:
+        # get sequence metadata from a file on local disk
         if (compression_type := metadata_path.suffix) in [".tsv", ".zst"]:
             metadata = pl.scan_csv(metadata_path, separator="\t", n_rows=num_rows)
         elif compression_type == ".xz":
             metadata = pl.read_csv(
                 lzma.open(metadata_path), separator="\t", n_rows=num_rows, infer_schema_length=100000
             ).lazy()
+        else:
+            raise ValueError(f"Unsupported compression type: {compression_type}")
 
     return metadata
 

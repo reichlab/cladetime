@@ -1,3 +1,4 @@
+import os
 from dataclasses import InitVar, asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -59,6 +60,11 @@ class Config:
             self.data_path = Path(data_path_root)
         else:
             self.data_path = Path(".").home() / "covid_variant" / self.run_time
+
+        # For demo purposes, use Nextstrain's 100k sample dataset
+        if os.environ.get("CLADETIME_DEMO") == "true":
+            self.nextstrain_genome_metadata_key = "files/ncov/open/100k/metadata.tsv.xz"
+            self.nextstrain_genome_sequence_key = "files/ncov/open/100k/sequences.fasta.xz"
 
     def __repr__(self):
         return str(pprint(asdict(self)))

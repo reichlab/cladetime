@@ -1,4 +1,5 @@
 import json
+import lzma
 from datetime import datetime, timezone
 
 import boto3
@@ -8,6 +9,14 @@ from freezegun import freeze_time
 from moto import mock_aws
 
 from cladetime.util.config import Config
+
+
+@pytest.fixture(scope="function")
+def demo_mode(monkeypatch):
+    "Set demo mode to True for tests using the Nextstrain 100K sequence files."
+    demo_mode = "true"
+    monkeypatch.setenv("CLADETIME_DEMO", demo_mode)
+    yield demo_mode
 
 
 @pytest.fixture
@@ -41,6 +50,7 @@ def ncov_metadata():
 def s3_object_keys():
     return {
         "sequence_metadata": "data/object-key/metadata.tsv.zst",
+        "sequence_metadata_xz": "data/object-key/metadata.tsv.xz",
         "sequence": "data/object-key/sequences.fasta.zst",
         "ncov_metadata": "data/object-key/metadata_version.json",
     }
@@ -92,6 +102,8 @@ def s3_setup(s3_object_keys, ncov_metadata):
                     ncov_metadata["nextclade_version_num"] = "3.8.2"
                     ncov_metadata["greeting"] = "hello from pytest and moto"
                     content = json.dumps(ncov_metadata)
+                elif key == "sequence_metadata_xz":
+                    content = lzma.compress(b"f'{value} version {i}'")
                 else:
                     content = f"{value} version {i}"
                 # use freezegun to override system date, which in
