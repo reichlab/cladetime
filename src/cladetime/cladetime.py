@@ -218,7 +218,9 @@ class CladeTime:
 
         For each sequence in a sequence file (.fasta), assign a Nextstrain
         clade using the Nextclade reference tree that corresponds to the
-        tree_as_of date.
+        tree_as_of date. The earliest available tree_as_of date is 2024-08-01,
+        when Nextstrain began publishing the pipeline metadata that Cladetime
+        uses to retrieve past reference trees.
 
         Parameters
         ----------

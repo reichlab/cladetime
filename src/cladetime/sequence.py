@@ -191,13 +191,11 @@ def filter_metadata(
     This function will filter out metadata rows with invalid state names or
     date strings that cannot be cast to a Polars date format.
 
-    Example:
+    Example
     --------
     >>> from cladetime import CladeTime
     >>> from cladetime.sequence import filter_covid_genome_metadata
-
-    Apply common filters to the sequence metadata of a CladeTime object:
-
+    >>>
     >>> ct = CladeTime(seq_as_of="2024-10-15")
     >>> ct = CladeTime(sequence_as_of="2024-10-15")
     >>> filtered_metadata = filter_covid_genome_metadata(ct.sequence_metadata)

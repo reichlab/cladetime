@@ -43,7 +43,7 @@ files as they existing on this date (defaults to the current UTC datetime)
 
 ## Accessing sequence data
 
-Each CladeTime object has a link to the full set of Nextstrain's SARS-Cov-2
+Each `CladeTime` object has a link to the full set of Nextstrain's SARS-Cov-2
 genomic sequences as they existed on the `sequence_as_of` date. This data
 is in .fasta format, and most users won't need to download it directly.
 
@@ -57,12 +57,12 @@ https://nextstrain-data.s3.amazonaws.com/files/ncov/open/sequences.fasta.xz?vers
 More interesting to most users will be the [metadata that describes each
 sequence](https://docs.nextstrain.org/projects/ncov/en/latest/reference/metadata-fields.html).
 
-The `sequence_metadata` attribute of a CladeTime object is a Polars LazyFrame
+The `sequence_metadata` attribute of a `CladeTime` object is a Polars LazyFrame
 that points to a copy of Nextstrain's sequence metadata.
 
 You can apply your own filters and transformations to the LazyFrame, but
-it's a good idea to start with CladeTime's built-in filter that removes
-non-US and non-human sequences from the metadata.
+it's a good idea to start with the built-in `filter_metadata` function that
+removes non-US and non-human sequences from the metadata.
 
 A `collect()` operation will return the filtered metadata as an in-memory
 Polars DataFrame.
@@ -107,8 +107,9 @@ You may want to assign sequence clades using a reference tree from a past date.
 This feature is helpful when creating "source of truth" data to evaluate
 models that predict clade proportions:
 
-- use the `tree_as_of` parameter when creating a `CladeTime` object
+- create a `CladeTime` object using the `tree_as_of` parameter
 - filter the sequence metadata to include only the sequences you want to assign
+- pass the filtered metadata to the `assign_clades` method
 
 CladeTime's `assign_clades` method returns two Polars LazyFrames:
 
@@ -172,10 +173,10 @@ shape: (5, 5)
 
 ## Reproducibility
 
-CladeTime objects have an `ncov_metadata` property with information needed to
+`CladeTime` objects have an `ncov_metadata` property with information needed to
 reproduce the clade assignments in the object's sequence metadata.
 
-In the example below, the `ncov_metadata` property shows that the
+In the example below, `ncov_metadata` shows that the
 [Nextclade dataset](https://docs.nextstrain.org/projects/nextclade/en/stable/user/datasets.html)
 used for clade assignment on 2024-09-22 was `2024-07-17--12-57-03Z`.
 
