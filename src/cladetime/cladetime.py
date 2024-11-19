@@ -124,8 +124,7 @@ class CladeTime:
     def tree_as_of(self) -> datetime:
         """
         datetime.datetime : The date and time (UTC) used to retrieve the NextStrain
-        reference tree. :py:obj:`cladetime.Tree.tree`
-        contains the reference tree that was current as of this date.
+        reference tree.
         """
         return self._tree_as_of
 
@@ -219,7 +218,9 @@ class CladeTime:
 
         For each sequence in a sequence file (.fasta), assign a Nextstrain
         clade using the Nextclade reference tree that corresponds to the
-        tree_as_of date.
+        tree_as_of date. The earliest available tree_as_of date is 2024-08-01,
+        when Nextstrain began publishing the pipeline metadata that Cladetime
+        uses to retrieve past reference trees.
 
         Parameters
         ----------
@@ -234,15 +235,55 @@ class CladeTime:
 
         Returns
         -------
-        metadata_clades : Clade
+        :class:`cladetime._clade.Clade`
             A Clade object that contains detailed and summarized information
             about clades assigned to the sequences in sequence_metadata.
+
+        Raises
+        -------
+        CladeTimeSequenceWarning
+            If sequence_metadata is empty, the clade assignment process
+            will be stopped.
+
+        Example
+        -------
+        >>> import polars as pl
+        >>>
+        >>> from cladetime import CladeTime, sequence
+        >>> ct = CladeTime(sequence_as_of="2024-11-15", tree_as_of="2024-09-01")
+        >>>
+        >>> filtered_metadata = sequence.filter_metadata(
+        >>>     ct.sequence_metadata,
+        >>>     collection_min_date = "2024-10-01",
+        >>> )
+        >>> clade_assignments = ct.assign_clades(filtered_metadata)
+        >>>
+        >>> clade_assignment_summary = clade_assignments.summary
+        >>> clade_assignment_summary.select(
+        >>>     ["location", "date", "clade_nextstrain", "count"])
+        >>>     .sort("count", descending=True)
+        >>>     .collect(stream=True).head()
+        ┌──────────┬────────────┬──────────────────┬───────┐
+        │ location ┆ date       ┆ clade_nextstrain ┆ count │
+        │ ---      ┆ ---        ┆ ---              ┆ ---   │
+        │ str      ┆ date       ┆ str              ┆ u32   │
+        ╞══════════╪════════════╪══════════════════╪═══════╡
+        │ NY       ┆ 2024-10-01 ┆ 24C              ┆ 15    │
+        │ NY       ┆ 2024-10-15 ┆ 24C              ┆ 15    │
+        │ NY       ┆ 2024-10-03 ┆ 24C              ┆ 14    │
+        │ NY       ┆ 2024-10-14 ┆ 24C              ┆ 14    │
+        │ NJ       ┆ 2024-10-16 ┆ 24C              ┆ 12    │
+        └──────────┴────────────┴──────────────────┴───────┘
         """
         assignment_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
         if output_file is not None:
             output_file = Path(output_file)
         else:
             output_file = Path.home() / "cladetime" / "clade_assignments.csv"
+
+        logger.info(
+            "Starting clade assignment pipeline", sequence_as_of=self.sequence_as_of, tree_as_of=self.tree_as_of
+        )
 
         # if there are no sequences in the filtered metadata, stop the clade assignment
         sequence_count = sequence_metadata.select(pl.len()).collect().item()
@@ -253,6 +294,8 @@ class CladeTime:
                 category=CladeTimeSequenceWarning,
             )
             return Clade(meta={}, detail=pl.LazyFrame(), summary=pl.LazyFrame())
+        else:
+            logger.info("Sequence count complete", sequence_count=sequence_count)
 
         # if there are many sequences in the filtered metadata, warn that clade assignment will
         # take a long time and require a lot of resources
@@ -265,13 +308,6 @@ class CladeTime:
                 msg,
                 category=CladeTimeSequenceWarning,
             )
-
-        logger.info(
-            "Starting clade assignment pipeline",
-            sequence_as_of=self.sequence_as_of,
-            tree_as_of=self.tree_as_of,
-            num_sequence=sequence_count,
-        )
 
         # drop any clade-related columns from sequence_metadata (if any exists, it will be replaced
         # by the results of the clade assignment)

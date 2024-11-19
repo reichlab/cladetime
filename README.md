@@ -1,117 +1,210 @@
-# Cladetime
+# User Guide
 
-Cladetime is a wrapper around Nextstrain datasets and tools for downloading and working with SARS-CoV-2 virus genome sequence data at
-a specific point in time.
+Cladetime is a wrapper around Nextstrain's GenBank-based SARS-CoV-2 genome
+sequence data and the metadata that describes it. Included with the metadata
+are the clades (variants) that each sequence is assigned to.
 
-## Usage
+An advanced feature of Cladetime is the ability to perform custom clade
+assignments using past reference trees. For example, you can use the
+current set of sequence data and assign clades to it using the reference tree
+as it existed three months ago.
 
-This library contains two types of components:
+Cladetime is designed for use with US-based sequences from Homo sapiens.
 
-1. Scripts and CLI tools for use in database pipelines required by the [Variant Nowcast Hub](https://github.com/reichlab/variant-nowcast-hub) (these are in development and not documented here).
+## Installation
 
-2. Python classes for interactively working with SARS-CoV-2 sequence data, metadata, and clade assignments.
-
-## Getting started with Cladetime
-
-To use `cladetime` interactively, install the package from GitHub:
+Cladetime is written in Python and can be installed using pip:
 
 ```bash
 pip install git+https://github.com/reichlab/cladetime.git
 ```
 
-Below are a few examples of using Cladetime in a Python interpreter.
-See the [project documentation](https://cladetime.readthedocs.io) for more details.
+## The CladeTime class
 
-### Time traveling with Cladetime
+Most of Cladetime's features are accessible through the `CladeTime` class,
+which accepts two optional parameters:
 
-Cladetime knows where to find past versions of Nextstrain's SARS-CoV-2 sequence data and metadata files.
-These are [intermediate files produced by Nextstrain's daily workflow](https://docs.nextstrain.org/projects/ncov/en/latest/reference/remote_inputs.html#remote-inputs-open-files). Cladetime uses the full set of open Genbank data.
+- `sequence_as_of`: access Nextstrain SARS-CoV-2 sequence data and metadata
+files as they existing on this date (defaults to the current UTC datetime)
+- `tree_as_of`: the date of the reference tree to use for clade assignments
+(defaults to `sequence_as_of`)
+
+> [!IMPORTANT]
+> Using `tree_as_of` for custom clade assignments is an advanced feature
+> and requires Docker.
 
 ```python
 >>> from cladetime import CladeTime
 
-# Create a CladeTime object for any date after May 2023
-# (for the most recent data, remove the `sequence_as_of` parameter)
->>> ct = CladeTime(sequence_as_of="2024-10-15")
-
-# Based on the sequence_as_of date (above), Cladetime provides URLs to the corresponding
-# SARS-CoV-2 past sequence data and metadata files
->>> ct.url_sequence
-'https://nextstrain-data.s3.amazonaws.com/files/ncov/open/sequences.fasta.zst?versionId=8Zszokay3LRP5Zec_cviQ8oXkx8cJlwq'
->>> ct.url_sequence_metadata
-'https://nextstrain-data.s3.amazonaws.com/files/ncov/open/metadata.tsv.zst?versionId=U4aIlh5HI1XuDLPW7q9WTZad6gXwARqT'
+# Create a CladeTime object that references the most recent available sequence
+# data and metadata from Nextstrain
+>>> ct = CladeTime()
 ```
 
-### Interacting with sequence metadata
+## Accessing sequence data
 
-The [metadata provided by Nextstrain](https://docs.nextstrain.org/projects/ncov/en/latest/reference/metadata-fields.html)
-contains descriptive information about SARS-CoV-2 sequences. Cladetime provides a Polars-based interface to work with
-this metadata directly, without downloading it first.
+Each `CladeTime` object has a link to the full set of Nextstrain's SARS-Cov-2
+genomic sequences as they existed on the `sequence_as_of` date. This data
+is in .fasta format, and most users won't need to download it directly.
 
 ```python
->>> from datetime import datetime
->>> import polars as pl
 >>> from cladetime import CladeTime
+>>> ct = CladeTime()
+>>> ct.url_sequence
+https://nextstrain-data.s3.amazonaws.com/files/ncov/open/sequences.fasta.xz?versionId=4Sv2PbA1NoEd.V_LOOQSBPkqBpdoj7s_'
+```
+
+More interesting to most users will be the [metadata that describes each
+sequence](https://docs.nextstrain.org/projects/ncov/en/latest/reference/metadata-fields.html).
+
+The `sequence_metadata` attribute of a `CladeTime` object is a Polars LazyFrame
+that points to a copy of Nextstrain's sequence metadata.
+
+You can apply your own filters and transformations to the LazyFrame, but
+it's a good idea to start with the built-in `filter_metadata` function that
+removes non-US and non-human sequences from the metadata.
+
+A `collect()` operation will return the filtered metadata as an in-memory
+Polars DataFrame.
+
+```python
+>>> import polars as pl
+>>> from cladetime import CladeTime, sequence
 
 >>> ct = CladeTime()
->>> metadata = ct.sequence_metadata  # Returns a Polars LazyFrame
+>>> filtered_metadata = sequence.filter_metadata(ct.sequence_metadata)
 
-# From there, you can use Polars to manipulate the data as needed
->>> filtered_sequence_metadata = (
-...     metadata
-...     .select(["country", "division", "date", "host", "clade_nextstrain"])
-...     .rename({"division": "location"})
-...     .cast({"date": pl.Date}, strict=False)
-...     .filter(
-...         pl.col("country") == "USA",
-...         pl.col("date") >= pl.lit(datetime(2024, 9, 1)),
-...         pl.col("date") < pl.lit(datetime(2024, 11, 1)),
-...     )
-...     .group_by(["date", "clade_nextstrain"]).len()
-... ).collect(streaming=True)
+# Alternately, specify a sequence collection date range to the filter
+>>> filtered_metadata = sequence.filter_metadata(
+>>>     ct.sequence_metadata,
+>>>     collection_min_date = "2024-10-01",collection_max_date ="2024-10-31"
+>>> )
 
->>> filtered_sequence_metadata.head(5)
-shape: (5, 3)
-┌────────────┬──────────────────┬─────┐
-│ date       ┆ clade_nextstrain ┆ len │
-│ ---        ┆ ---              ┆ --- │
-│ date       ┆ str              ┆ u32 │
-╞════════════╪══════════════════╪═════╡
-│ 2024-09-05 ┆ 24B              ┆ 42  │
-│ 2024-09-26 ┆ 24E              ┆ 73  │
-│ 2024-09-03 ┆ 24A              ┆ 100 │
-│ 2024-09-24 ┆ 24F              ┆ 17  │
-│ 2024-09-25 ┆ 24B              ┆ 12  │
-└────────────┴──────────────────┴─────┘
+>>> metadata_df = filtered_metadata.collect(streaming=True)
 
 # Pandas users can export Polars dataframes
 >>> pandas_df = filtered_sequence_metadata.to_pandas()
 ```
 
-### Reference trees and clade assignments
+## Past sequence data
 
-Cladetime also allows you to access SARS-CoV-2 reference trees from past dates (back to August 1, 2024).
-This is useful for assigning sequences to clades based on a specific reference tree.
+Working with past sequence data and metadata is similar to the above examples.
+Just pass in a `sequence_as_of` date when creating a `CladeTime` object.
+
+The clades returned as part of the metadata will reflect the reference tree
+in use when sequence metadata file was created.
 
 ```python
->>> from cladetime import CladeTime, Tree
+>>> from cladetime import CladeTime
 
->>> ct = CladeTime(tree_as_of="2024-09-01")
->>> ref_tree = Tree(ct)
-
-# The tree object provides a URL to the reference tree as
-# it existed on the "tree_as_of" date
->>> ref_tree.url
-'https://data.clades.nextstrain.org/v3/nextstrain/sars-cov-2/wuhan-hu-1/orfs/2024-07-17--12-57-03Z/tree.json'
-
-# It also contains the tree itself, in the form of a Python dictionary
->>> ref_tree.tree.keys()
-dict_keys(['version', 'meta', 'tree', 'root_sequence'])
-
->>> print(ref_tree.tree['meta']['title'], ref_tree.tree['meta']['updated'])
-SARS-CoV-2 phylogeny 2024-07-17
+# Create a CladeTime object for any date after May, 2023
+>>> ct = CladeTime(sequence_as_of="2024-10-15")
 ```
 
-### Clade assignments with past sequences and reference trees
+## Custom clade assignments
 
-Coming soon!
+You may want to assign sequence clades using a reference tree from a past date.
+This feature is helpful when creating "source of truth" data to evaluate
+models that predict clade proportions:
+
+- create a `CladeTime` object using the `tree_as_of` parameter
+- filter the sequence metadata to include only the sequences you want to assign
+- pass the filtered metadata to the `assign_clades` method
+
+CladeTime's `assign_clades` method returns two Polars LazyFrames:
+
+- `detail`: a linefile of each sequence and its assigned clade
+- `summary`: clade counts summarized by `country`, `location`, `date` and `host`
+
+> [!WARNING]
+> In addition to requiring Docker, assign_clades is resource-intensive,
+> because the process requires downloading a full copy of SARS-CoV-2
+> sequence data and then filtering it.
+>
+> The filtered sequences are then run through Nextclade's CLI for clade
+> assignment, another resource-intensive process. We recommend not
+> assigning more than 30 days worth of sequence collections at a time.
+
+```python
+>>> import polars as pl
+>>> from cladetime import CladeTime, sequence
+
+>>> ct = CladeTime(sequence_as_of="2024-11-15", tree_as_of="2024-09-01")
+>>> filtered_metadata = sequence.filter_metadata(
+>>>     ct.sequence_metadata,
+>>>     collection_min_date = "2024-10-01",
+>>>     collection_max_date ="2024-10-31"
+>>> )
+>>> clade_assignments = ct.assign_clades(filtered_metadata)
+
+# Summarized clade assignments
+>>> clade_assignments.summary.collect().head()
+shape: (5, 6)
+┌──────────┬────────────┬──────────────┬──────────────────┬─────────┬───────┐
+│ location ┆ date       ┆ host         ┆ clade_nextstrain ┆ country ┆ count │
+│ ---      ┆ ---        ┆ ---          ┆ ---              ┆ ---     ┆ ---   │
+│ str      ┆ date       ┆ str          ┆ str              ┆ str     ┆ u32   │
+╞══════════╪════════════╪══════════════╪══════════════════╪═════════╪═══════╡
+│ IL       ┆ 2024-10-28 ┆ Homo sapiens ┆ 24C              ┆ USA     ┆ 1     │
+│ IL       ┆ 2024-10-11 ┆ Homo sapiens ┆ 24C              ┆ USA     ┆ 5     │
+│ NY       ┆ 2024-10-08 ┆ Homo sapiens ┆ 24B              ┆ USA     ┆ 2     │
+│ AZ       ┆ 2024-10-15 ┆ Homo sapiens ┆ 24C              ┆ USA     ┆ 1     │
+│ MN       ┆ 2024-10-06 ┆ Homo sapiens ┆ 24A              ┆ USA     ┆ 2     │
+└──────────┴────────────┴──────────────┴──────────────────┴─────────┴───────┘
+
+# Detailed clade assignments
+>>> clade_assignments.detail.collect().select(
+>>>     ["country", "location", "date", "strain", "clade_nextstrain"]
+>>>    ).head (
+shape: (5, 5)
+┌─────────┬──────────┬────────────┬─────────────────────┬──────────────────┐
+│ country ┆ location ┆ date       ┆ strain              ┆ clade_nextstrain │
+│ ---     ┆ ---      ┆ ---        ┆ ---                 ┆ ---              │
+│ str     ┆ str      ┆ date       ┆ str                 ┆ str              │
+╞═════════╪══════════╪════════════╪═════════════════════╪══════════════════╡
+│ USA     ┆ AZ       ┆ 2024-10-01 ┆ USA/2024CV1711/2024 ┆ 24C              │
+│ USA     ┆ AZ       ┆ 2024-10-02 ┆ USA/2024CV1718/2024 ┆ 24C              │
+│ USA     ┆ AZ       ┆ 2024-10-04 ┆ USA/2024CV1719/2024 ┆ 24C              │
+│ USA     ┆ AZ       ┆ 2024-10-05 ┆ USA/2024CV1721/2024 ┆ 24C              │
+│ USA     ┆ AZ       ┆ 2024-10-06 ┆ USA/2024CV1722/2024 ┆ recombinant      │
+└─────────┴──────────┴────────────┴─────────────────────┴──────────────────┘
+)
+```
+
+## Reproducibility
+
+`CladeTime` objects have an `ncov_metadata` property with information needed to
+reproduce the clade assignments in the object's sequence metadata.
+
+In the example below, `ncov_metadata` shows that the
+[Nextclade dataset](https://docs.nextstrain.org/projects/nextclade/en/stable/user/datasets.html)
+used for clade assignment on 2024-09-22 was `2024-07-17--12-57-03Z`.
+
+Each version of a SARS-CoV-2 Nextclade dataset contains a reference tree
+that can be used as an input for clade assignments.
+
+```python
+>>> from cladetime import CladeTime
+>>> ct = CladeTime(sequence_as_of='2024-09-22')
+
+>>> ct.ncov_metadata.get('nextclade_dataset_name')
+'SARS-CoV-2'
+>>> ct.ncov_metadata.get('nextclade_dataset_version')
+'2024-07-17--12-57-03Z'
+```
+
+Access to historical copies of `ncov_metadata` is what allows Cladetime to
+access past reference trees for custom clade assignments. Cladetime retrieves
+a separate set of `ncov_metadata` for the `tree_as_of` date and uses it to pass
+the correct reference tree to the `assign_clades` method.
+
+## Command line interface (CLI)
+
+Cladetime will also include a command line interface (CLI) for generating
+custom clade assignments without needed to write Python code.
+
+The CLI is not yet implemented, but it will look something like this:
+
+```bash
+assign_clades --sequence-as-of 2024-10-15 --tree-as-of 2024-09-01 --min-collection-date 2024-09-01 --max-collection-date 2024-09-30 --output-file clade_assignments.csv
+```

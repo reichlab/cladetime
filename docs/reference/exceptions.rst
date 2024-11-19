@@ -1,7 +1,13 @@
-===========
-Exceptions
-===========
+=======================
+Exceptions and Warnings
+=======================
 
-.. automodule:: cladetime.exceptions
-   :members:
+.. autoexception:: cladetime.exceptions.CladeTimeInvalidURLError
 
+.. autoexception:: cladetime.exceptions.NextcladeNotAvailableError
+
+.. autoexception:: cladetime.exceptions.TreeNotAvailableError
+
+.. autoexception:: cladetime.exceptions.CladeTimeDateWarning
+
+.. autoexception:: cladetime.exceptions.CladeTimeSequenceWarning
