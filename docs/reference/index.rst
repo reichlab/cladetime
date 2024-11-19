@@ -5,6 +5,7 @@ API Reference
 
    cladetime
    sequence
+   clade
    types
    exceptions
 
