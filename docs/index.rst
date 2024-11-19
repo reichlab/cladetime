@@ -11,7 +11,7 @@ Cladetime is a Python interface for accessing `Nextstrain <https://nextstrain.or
    :hidden:
 
    Home <self>
-   user-guide
+   User Guide <read-me>
    reference/index
 
 .. sidebar-links::
@@ -33,6 +33,10 @@ Usage
 The CladeTime :any:`CladeTime` class provides a lightweight wrapper around historical and current
 SARS-CoV-2 GenBank sequence and sequence metadata created by `nextstrain.org's <https://nextstrain.org/>`_
 daily workflow pipeline.
+
+- See the :doc:`read-me` for more details about working with Cladetime.
+
+- The :doc:`reference/index` documentation provides API-level documentation.
 
 .. code-block:: python
 
