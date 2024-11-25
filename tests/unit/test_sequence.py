@@ -68,6 +68,12 @@ def test_get_metadata_url(s3_setup):
     )
     metadata = sequence.get_metadata(metadata_url=presigned_url)
     assert isinstance(metadata, pl.LazyFrame)
+    # ZNK 2024-11-25: I would like to test this, but I am not sure what the
+    #   output should be and I am getting 403: no body errors with this.
+    # expected_metadata = pl.DataFrame(
+    #         {"data/object-key/metadata.tsv.zst version 4": []}
+    #         ).cast({"data/object-key/metadata.tsv.zst version 4": str})
+    # assert_frame_equal(expected_metadata, metadata.collect_schema(), check_column_order=False, check_row_order=False)
 
     # get metadata file from S3 using XZ compression
     presigned_url = s3_client.generate_presigned_url(
