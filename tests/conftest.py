@@ -103,7 +103,7 @@ def s3_setup(s3_object_keys, ncov_metadata):
                     ncov_metadata["greeting"] = "hello from pytest and moto"
                     content = json.dumps(ncov_metadata)
                 elif key == "sequence_metadata_xz":
-                    content = lzma.compress(b"f'{value} version {i}'")
+                    content = lzma.compress(str.encode(f"{value} version {i}"))
                 else:
                     content = f"{value} version {i}"
                 # use freezegun to override system date, which in

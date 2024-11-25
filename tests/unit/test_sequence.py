@@ -77,6 +77,11 @@ def test_get_metadata_url(s3_setup):
     )
     metadata = sequence.get_metadata(metadata_url=presigned_url)
     assert isinstance(metadata, pl.LazyFrame)
+    expected_metadata = pl.DataFrame(
+            {"data/object-key/metadata.tsv.xz version 4": []}
+            ).cast({"data/object-key/metadata.tsv.xz version 4": str})
+
+    assert_frame_equal(expected_metadata, metadata.collect(), check_column_order=False, check_row_order=False)
 
 
 def test_filter_metadata():
