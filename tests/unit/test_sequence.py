@@ -53,29 +53,29 @@ def test_get_metadata(test_file_path, metadata_file):
     assert expected_cols.issubset(metadata_cols)
 
 
-def test_get_metadata_url(s3_setup):
+def test_get_metadata_url(s3_setup, test_file_path):
     """
     Test get_metadata when used with an S3 URL instead of a local file.
     Needs additional research into moto and S3 url access.
     """
     s3_client, bucket_name, s3_object_keys = s3_setup
 
-    # get metadata file from S3 using ZSTD compression
-    presigned_url = s3_client.generate_presigned_url(
-        "get_object",
-        Params={"Bucket": bucket_name, "Key": s3_object_keys["sequence_metadata_zst"]},
-        ExpiresIn=3600,
+    # For .zst files, get_metadata uses polars to access the file directly via scan_csv
+    # However, that is difficult to test, because polars doesn't use requests or boto
+    # under the hood, so it doesn't work with moto. Thus, this hacky test passes a
+    # test file path as the metadata_url param.
+    test_file = test_file_path / "metadata.tsv.zst"
+    metadata = sequence.get_metadata(metadata_url=str(test_file))
+    # ensure lazyframe can be collected and check its shape and columns
+    metadata_df = metadata.collect()
+    assert metadata_df.shape == (99373, 58)
+    assert all(
+        col in metadata_df.columns for col in ["strain", "date", "country", "division", "location", "clade_nextstrain"]
     )
-    metadata = sequence.get_metadata(metadata_url=presigned_url)
-    assert isinstance(metadata, pl.LazyFrame)
-    # ZNK 2024-11-25: I would like to test this, but I am not sure what the
-    #   output should be and I am getting 403: no body errors with this.
-    # expected_metadata = pl.DataFrame(
-    #         {"data/object-key/metadata.tsv.zst version 4": []}
-    #         ).cast({"data/object-key/metadata.tsv.zst version 4": str})
-    # assert_frame_equal(expected_metadata, metadata.collect_schema(), check_column_order=False, check_row_order=False)
 
-    # get metadata file from S3 using XZ compression
+    # Get metadata file from S3 using XZ compression. Here we can use a presigned S3 URL
+    # because for .xz files, get_metadata uses requests to download the file in chunks
+    # before polars processes it.
     presigned_url = s3_client.generate_presigned_url(
         "get_object",
         Params={"Bucket": bucket_name, "Key": s3_object_keys["sequence_metadata_xz"]},
