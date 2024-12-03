@@ -70,7 +70,7 @@ def get_metadata(
         # get sequence metadata from a URL
         file_suffix = Path(urlparse(metadata_url).path).suffix
         if file_suffix in [".tsv", ".zst"]:
-            metadata = pl.scan_csv(metadata_path, separator="\t", n_rows=num_rows)
+            metadata = pl.scan_csv(metadata_url, separator="\t", n_rows=num_rows)
         elif file_suffix == ".xz":
             # pytyon's lzma module doesn't support opening via HTTP, so use requests
             # to download the file in chunks and then decompress it
