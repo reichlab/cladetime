@@ -1,6 +1,5 @@
-import json
-import lzma
 from datetime import datetime, timezone
+from pathlib import Path
 
 import boto3
 import pytest
@@ -9,6 +8,15 @@ from freezegun import freeze_time
 from moto import mock_aws
 
 from cladetime.util.config import Config
+
+
+@pytest.fixture
+def moto_file_path() -> Path:
+    """
+    Return path to the unit test files.
+    """
+    moto_file_path = Path(__file__).parent.joinpath("data").joinpath("moto_fixture")
+    return moto_file_path
 
 
 @pytest.fixture(scope="function")
@@ -38,21 +46,12 @@ def test_sequences():
 
 
 @pytest.fixture
-def ncov_metadata():
-    return {
-        "schema_version": "v1",
-        "nextclade_dataset_name": "SARS-CoV-2",
-        "nextclade_dataset_version": "",
-    }
-
-
-@pytest.fixture
 def s3_object_keys():
     return {
-        "sequence_metadata": "data/object-key/metadata.tsv.zst",
-        "sequence_metadata_xz": "data/object-key/metadata.tsv.xz",
-        "sequence": "data/object-key/sequences.fasta.zst",
-        "ncov_metadata": "data/object-key/metadata_version.json",
+        "sequence_metadata_zst": "data/metadata.tsv.zst",
+        "sequence_metadata_xz": "data/metadata.tsv.xz",
+        "sequences_xz": "data/sequences.fasta.xz",
+        "ncov_metadata": "data/metadata_version.json",
     }
 
 
@@ -65,7 +64,7 @@ def mock_session(mocker):
 
 
 @pytest.fixture
-def s3_setup(s3_object_keys, ncov_metadata):
+def s3_setup(moto_file_path, s3_object_keys):
     """
     Setup mock S3 bucket with versioned objects that represent testing files for
     sequence data, sequence metadata, and ncov pipeline metadata.
@@ -93,27 +92,12 @@ def s3_setup(s3_object_keys, ncov_metadata):
         # Add versioned sequence, sequence metadata, and ncov metadata test objects
         versions = ["2023-01-01 03:05:01", "2023-02-05 03:33:06", "2023-02-05 14:33:06", "2023-03-22 22:55:12"]
         for i, version in enumerate(versions, start=1):
-            for key, value in s3_object_keys.items():
-                if key == "ncov_metadata":
-                    ncov_metadata["nextclade_dataset_version"] = f"version-{i}"
-                    ncov_metadata["nextclade_dataset_name"] = "sars-cov-2"
-                    ncov_metadata["nextclade_dataset_name_full"] = "data/clades"
-                    ncov_metadata["nextclade_version"] = "nexclade 3.8.2"
-                    ncov_metadata["nextclade_version_num"] = "3.8.2"
-                    ncov_metadata["greeting"] = "hello from pytest and moto"
-                    content = json.dumps(ncov_metadata)
-                elif key == "sequence_metadata_xz":
-                    content = lzma.compress(str.encode(f"{value} version {i}"))
-                else:
-                    content = f"{value} version {i}"
-                # use freezegun to override system date, which in
-                # turn sets S3 object version LastModified date
-                with freeze_time(version):
-                    s3_client.put_object(
-                        Bucket=bucket_name,
-                        Key=value,
-                        Body=content,
-                    )
+            extra_args = {"Metadata": {"version": str(i)}}
+            # use freezegun to override system date, which in
+            # turn sets S3 object version LastModified date
+            with freeze_time(version):
+                for file in moto_file_path.iterdir():
+                    s3_client.upload_file(file, bucket_name, f"data/{file.name}", ExtraArgs=extra_args)
 
         yield s3_client, bucket_name, s3_object_keys
 
@@ -127,8 +111,8 @@ def test_config(s3_setup):
     test_config = Config()
     test_config.nextstrain_min_seq_date = datetime(2023, 1, 1).replace(tzinfo=timezone.utc)
     test_config.nextstrain_ncov_bucket = "versioned-bucket"
-    test_config.nextstrain_genome_metadata_key = s3_object_keys["sequence_metadata"]
-    test_config.nextstrain_genome_sequence_key = s3_object_keys["sequence"]
+    test_config.nextstrain_genome_metadata_key = s3_object_keys["sequence_metadata_zst"]
+    test_config.nextstrain_genome_sequence_key = s3_object_keys["sequences_xz"]
     test_config.nextstrain_ncov_metadata_key = s3_object_keys["ncov_metadata"]
 
     return test_config

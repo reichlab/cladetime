@@ -63,7 +63,7 @@ def test_get_metadata_url(s3_setup):
     # get metadata file from S3 using ZSTD compression
     presigned_url = s3_client.generate_presigned_url(
         "get_object",
-        Params={"Bucket": bucket_name, "Key": s3_object_keys["sequence_metadata"]},
+        Params={"Bucket": bucket_name, "Key": s3_object_keys["sequence_metadata_zst"]},
         ExpiresIn=3600,
     )
     metadata = sequence.get_metadata(metadata_url=presigned_url)
@@ -82,12 +82,12 @@ def test_get_metadata_url(s3_setup):
         ExpiresIn=3600,
     )
     metadata = sequence.get_metadata(metadata_url=presigned_url)
-    assert isinstance(metadata, pl.LazyFrame)
-    expected_metadata = pl.DataFrame(
-            {"data/object-key/metadata.tsv.xz version 4": []}
-            ).cast({"data/object-key/metadata.tsv.xz version 4": str})
-
-    assert_frame_equal(expected_metadata, metadata.collect(), check_column_order=False, check_row_order=False)
+    # ensure lazyframe can be collected and check its shape and columns
+    metadata_df = metadata.collect()
+    assert metadata_df.shape == (99373, 58)
+    assert all(
+        col in metadata_df.columns for col in ["strain", "date", "country", "division", "location", "clade_nextstrain"]
+    )
 
 
 def test_filter_metadata():

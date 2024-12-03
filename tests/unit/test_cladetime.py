@@ -114,27 +114,27 @@ def test_cladetime_future_date():
 
 
 @pytest.mark.parametrize(
-    "sequence_as_of, expected_content",
+    "sequence_as_of, expected_metadata",
     [
         (
             "2024-09-01",
-            "version 4",
+            {"version": "4"},
         ),
         (
             None,
-            "version 4",
+            {"version": "4"},
         ),
         (
             datetime(2023, 2, 5, 5, 55),
-            "version 2",
+            {"version": "2"},
         ),
         (
             datetime(2023, 2, 5, 1, 22),
-            "version 1",
+            {"version": "1"},
         ),
     ],
 )
-def test_cladetime_urls(s3_setup, test_config, sequence_as_of, expected_content):
+def test_cladetime_urls(s3_setup, test_config, sequence_as_of, expected_metadata):
     s3_client, bucket_name, s3_object_keys = s3_setup
 
     mock = MagicMock(return_value=test_config, name="CladeTime._get_config_mock")
@@ -147,7 +147,7 @@ def test_cladetime_urls(s3_setup, test_config, sequence_as_of, expected_content)
                 key = parsed_url.path.strip("/")
                 version_id = parse_qs(parsed_url.query)["versionId"][0]
                 object = s3_client.get_object(Bucket=bucket_name, Key=key, VersionId=version_id)
-                assert expected_content in object["Body"].read().decode("utf-8").lower()
+                assert object.get("Metadata") == expected_metadata
 
             if ct.sequence_as_of < test_config.nextstrain_min_ncov_metadata_date:
                 assert ct.url_ncov_metadata is None
@@ -170,7 +170,6 @@ def test_cladetime_ncov_metadata(s3_setup, s3_object_keys, test_config):
             )
             ct.url_ncov_metadata = presigned_url
 
-    assert ct.ncov_metadata.get("nextclade_dataset_version") == "version-4"
     assert ct.ncov_metadata.get("nextclade_dataset_name_full") == "nextstrain/sars-cov-2/wuhan-hu-1/orfs"
     assert ct.ncov_metadata.get("nextclade_version_num") == "3.8.2"
 
