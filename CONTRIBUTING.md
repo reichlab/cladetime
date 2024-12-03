@@ -83,7 +83,7 @@ in your issue or pull request (PR). We're happy to help!
 
 - [Ruff](https://docs.astral.sh/ruff/), to lint and format code. GitHub will
 automatically run Ruff on your pull request and fail if there are any issues.
-You can run Ruff locally (and fix errors) with `uv run ruff --fix`.
+You can run Ruff locally (and fix errors) with `uv run ruff check --fix`.
 - [pytest](https://docs.pytest.org/en/stable/), to run tests. Large changes
 and new features should be accompanied by new tests.
 - Python module, class, and function docstrings follow the
