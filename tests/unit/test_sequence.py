@@ -69,9 +69,13 @@ def test_get_metadata_url(s3_setup, test_file_path):
     # ensure lazyframe can be collected and check its shape and columns
     metadata_df = metadata.collect()
     assert metadata_df.shape == (99373, 58)
-    assert all(
-        col in metadata_df.columns for col in ["strain", "date", "country", "division", "location", "clade_nextstrain"]
-    )
+    # focus on a handful of columns that an integral to cladetime
+    metadata_df = metadata.collect().select("strain", "date", "country", "division", "location", "clade_nextstrain")
+    # strain column is required and should be unique
+    assert metadata_df.select("strain").n_unique() == len(metadata_df)
+    # all columns should have a string data type
+    for data_type in metadata_df.schema.to_python().values():
+        assert data_type is str
 
     # Get metadata file from S3 using XZ compression. Here we can use a presigned S3 URL
     # because for .xz files, get_metadata uses requests to download the file in chunks
@@ -85,9 +89,13 @@ def test_get_metadata_url(s3_setup, test_file_path):
     # ensure lazyframe can be collected and check its shape and columns
     metadata_df = metadata.collect()
     assert metadata_df.shape == (99373, 58)
-    assert all(
-        col in metadata_df.columns for col in ["strain", "date", "country", "division", "location", "clade_nextstrain"]
-    )
+    # focus on a handful of columns that an integral to cladetime
+    metadata_df = metadata.collect().select("strain", "date", "country", "division", "location", "clade_nextstrain")
+    # strain column is required and should be unique
+    assert metadata_df.select("strain").n_unique() == len(metadata_df)
+    # all columns should have a string data type
+    for data_type in metadata_df.schema.to_python().values():
+        assert data_type is str
 
 
 def test_filter_metadata():
