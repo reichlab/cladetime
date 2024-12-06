@@ -81,6 +81,8 @@ six==1.16.0
     # via python-dateutil
 structlog==24.4.0
     # via cladetime (pyproject.toml)
+tqdm==4.67.1
+    # via cladetime (pyproject.toml)
 typing-extensions==4.12.2
     # via rich-click
 tzdata==2024.2
