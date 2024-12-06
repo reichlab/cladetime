@@ -70,7 +70,7 @@ def get_metadata(
         # get sequence metadata from a URL
         file_suffix = Path(urlparse(metadata_url).path).suffix
         if file_suffix in [".tsv", ".zst"]:
-            metadata = pl.scan_csv(metadata_url, separator="\t", n_rows=num_rows)
+            metadata = pl.scan_csv(metadata_url, separator="\t", n_rows=num_rows, infer_schema_length=100000)
         elif file_suffix == ".xz":
             # pytyon's lzma module doesn't support opening via HTTP, so use requests
             # to download the file in chunks and then decompress it
@@ -83,7 +83,7 @@ def get_metadata(
                         decompressed_chunk = decompressor.decompress(chunk)
                         buffer.write(decompressed_chunk)
                 buffer.seek(0)
-                metadata = pl.scan_csv(buffer, separator="\t", n_rows=num_rows)
+                metadata = pl.scan_csv(buffer, separator="\t", n_rows=num_rows, infer_schema_length=100000)
         else:
             raise ValueError(f"Unsupported compression type: {file_suffix}")
 
