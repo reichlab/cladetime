@@ -93,3 +93,5 @@ urllib3==2.2.3
     #   requests
 us==3.2.0
     # via cladetime (pyproject.toml)
+zstandard==0.23.0
+    # via cladetime (pyproject.toml)

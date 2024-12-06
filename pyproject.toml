@@ -32,6 +32,7 @@ dependencies = [
     "structlog",
     "urllib3",
     "us",
+    "zstandard",
 ]
 
 [project.optional-dependencies]
