@@ -24,7 +24,7 @@ dependencies = [
     "cloudpathlib",
     "docker",
     "pandas",
-    "polars>=1.0.0",
+    "polars>=1.17.1",
     "pyarrow",
     "requests>=2.32.0",
     "rich",
