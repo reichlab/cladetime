@@ -190,7 +190,7 @@ def _get_clade_assignments(
 
     Invoke the Nextclade CLI :external:doc:`dataset run<user/nextclade-cli/usage>`
     command and save the resulting clade assignment file to disk. The clade
-    assignment file will be in CSV format.
+    assignment file will be in TSV format.
 
     Parameters
     ----------
@@ -238,7 +238,7 @@ def _get_clade_assignments(
         "run",
         "--input-dataset",
         f"/data/{nextclade_dataset.name}",
-        "--output-csv",
+        "--output-tsv",
         f"/data/{assignment_filename}",
         f"/data/{sequence_file.name}",
     ]

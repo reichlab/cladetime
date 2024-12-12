@@ -229,9 +229,9 @@ class CladeTime:
             :external+ncov:doc:`sequence metadata<reference/metadata-fields>`
             to use for clade assignment.
         output_file : str | None
-            The full path (including filename) to where the clade assignment
-            output file will be saved. The default value is
-            <home_dir>/cladetime/clade_assignments.csv.
+            The full path (including a .tsv filename) to where the clade
+            assignment output file will be saved. The default value is
+            <home_dir>/cladetime/clade_assignments.tsv.
 
         Returns
         -------
@@ -279,7 +279,7 @@ class CladeTime:
         if output_file is not None:
             output_file = Path(output_file)
         else:
-            output_file = Path.home() / "cladetime" / "clade_assignments.csv"
+            output_file = Path.home() / "cladetime" / "clade_assignments.tsv"
 
         logger.info(
             "Starting clade assignment pipeline", sequence_as_of=self.sequence_as_of, tree_as_of=self.tree_as_of
@@ -344,7 +344,7 @@ class CladeTime:
                 nextclade_dataset=tree.ncov_metadata.get("nextclade_dataset_version"),
             )
 
-            assigned_clades = pl.read_csv(assignments, separator=";", infer_schema_length=100000)
+            assigned_clades = pl.read_csv(assignments, separator="\t", infer_schema_length=100000)
 
         # join the assigned clades with the original sequence metadata, create a summarized LazyFrame
         # of clade counts by location, date, and host, and return both (along with metadata) in a

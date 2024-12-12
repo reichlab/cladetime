@@ -206,5 +206,5 @@ custom clade assignments without needed to write Python code.
 The CLI is not yet implemented, but it will look something like this:
 
 ```bash
-assign_clades --sequence-as-of 2024-10-15 --tree-as-of 2024-09-01 --min-collection-date 2024-09-01 --max-collection-date 2024-09-30 --output-file clade_assignments.csv
+assign_clades --sequence-as-of 2024-10-15 --tree-as-of 2024-09-01 --min-collection-date 2024-09-01 --max-collection-date 2024-09-30 --output-file clade_assignments.tsv
 ```

@@ -32,10 +32,10 @@ def test_get_clade_assignments(test_file_path, tmp_path):
     sequence_file = test_file_path / "test_sequences.fasta"
     nextclade_dataset = test_file_path / "test_nextclade_dataset.zip"
     # _get_clade_assignments should create the output directory if it doesn't exist
-    output_file = tmp_path / "clade_assignments" / "nextclade_assignments.csv"
+    output_file = tmp_path / "clade_assignments" / "nextclade_assignments.tsv"
 
     assignment_file = _get_clade_assignments("latest", sequence_file, nextclade_dataset, output_file)
-    assignment_df = pl.read_csv(assignment_file, separator=";").select(
+    assignment_df = pl.read_csv(assignment_file, separator="\t").select(
         ["seqName", "clade", "clade_nextstrain", "Nextclade_pango"]
     )
 
@@ -50,10 +50,10 @@ def test_get_clade_assignments_no_matches(test_file_path, tmp_path):
     sequence_file = test_file_path / "test_sequences_fake.fasta"
     nextclade_dataset = test_file_path / "test_nextclade_dataset.zip"
     # _get_clade_assignments should create the output directory if it doesn't exist
-    output_file = tmp_path / "clade_assignments" / "nextclade_assignments.csv"
+    output_file = tmp_path / "clade_assignments" / "nextclade_assignments.tsv"
 
     assignment_file = _get_clade_assignments("latest", sequence_file, nextclade_dataset, output_file)
-    assignment_df = pl.read_csv(assignment_file, separator=";").select(
+    assignment_df = pl.read_csv(assignment_file, separator="\t").select(
         ["seqName", "clade", "clade_nextstrain", "Nextclade_pango"]
     )
 
