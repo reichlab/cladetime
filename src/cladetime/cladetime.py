@@ -9,7 +9,7 @@ import polars as pl
 import structlog
 
 from cladetime import Tree, sequence
-from cladetime._clade import Clade
+from cladetime.clade import Clade
 from cladetime.exceptions import CladeTimeDateWarning, CladeTimeInvalidURLError, CladeTimeSequenceWarning
 from cladetime.util.config import Config
 from cladetime.util.reference import _get_clade_assignments, _get_date, _get_nextclade_dataset, _get_s3_object_url
@@ -235,7 +235,7 @@ class CladeTime:
 
         Returns
         -------
-        :class:`cladetime._clade.Clade`
+        :class:`cladetime.clade.Clade`
             A Clade object that contains detailed and summarized information
             about clades assigned to the sequences in sequence_metadata.
 

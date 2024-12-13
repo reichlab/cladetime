@@ -5,10 +5,11 @@ import structlog
 
 # must import Tree before CladeTime
 from cladetime.tree import Tree
+from cladetime.clade import Clade
 from cladetime.cladetime import CladeTime
 from cladetime.util.reference import _docker_installed
 
-__all__ = ["CladeTime", "Tree"]
+__all__ = ["Clade", "CladeTime", "Tree"]
 
 # tells us package to consider DC a state
 os.environ["DC_STATEHOOD"] = "1"
