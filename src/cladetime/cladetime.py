@@ -288,7 +288,7 @@ class CladeTime:
         # if there are no sequences in the filtered metadata, stop the clade assignment
         sequence_count = sequence_metadata.select(pl.len()).collect().item()
         if sequence_count == 0:
-            msg = "sequence_metadata is empty \n" "Stopping clade assignment...."
+            msg = "Sequence_metadata is empty or missing 'strain' columns \n" "Stopping clade assignment...."
             warnings.warn(
                 msg,
                 category=CladeTimeSequenceWarning,

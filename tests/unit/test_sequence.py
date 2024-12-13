@@ -231,9 +231,14 @@ def test_get_metadata_ids():
     seq_set = sequence.get_metadata_ids(df)
     assert seq_set == expected_set
 
-    empty_lf = pl.LazyFrame([])
-    with pytest.raises(ValueError):
-        seq_set = sequence.get_metadata_ids(empty_lf)
+
+@pytest.mark.parametrize(
+    "bad_input",
+    [(pl.LazyFrame()), (pl.DataFrame()), (pl.DataFrame({"strain": []})), (pl.LazyFrame({"wrong_column": ["A1"]}))],
+)
+def test_get_metadata_ids_bad_data(bad_input):
+    seq_set = sequence.get_metadata_ids(bad_input)
+    assert seq_set == set()
 
 
 def test_filter(test_file_path, tmpdir):

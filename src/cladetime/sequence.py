@@ -356,15 +356,13 @@ def get_metadata_ids(sequence_metadata: pl.DataFrame | pl.LazyFrame) -> set:
     ValueError
         If the sequence metadata does not contain a strain column
     """
-    logger.info("Collecting sequence IDs from metadata")
-    metadata_columns = sequence_metadata.collect_schema().names()
-    if "strain" not in metadata_columns:
-        logger.error("Missing column from sequence_metadata", column="strain")
-        raise ValueError("Sequence metadata does not contain a strain column.")
-    sequences = sequence_metadata.select("strain").unique()
-    if isinstance(sequence_metadata, pl.LazyFrame):
-        sequences = sequences.collect()  # type: ignore
-    seq_set = set(sequences["strain"].to_list())  # type: ignore
+    try:
+        sequences = sequence_metadata.select("strain").unique()
+        if isinstance(sequence_metadata, pl.LazyFrame):
+            sequences = sequences.collect()
+        seq_set = set(sequences["strain"].to_list())
+    except pl.exceptions.ColumnNotFoundError:
+        seq_set = set()
 
     return seq_set
 
