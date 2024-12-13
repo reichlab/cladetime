@@ -17,7 +17,7 @@ docker_enabled = _docker_installed()
 def test_cladetime_assign_clades(tmp_path, demo_mode):
     # demo_mode fixture overrides CladeTime config to use Nextstrain's 100k sample
     # sequence and sequence metadata instead of the entire universe of SARS-CoV-2 sequences
-    assignment_file = tmp_path / "assignments.csv"
+    assignment_file = tmp_path / "assignments.tsv"
 
     with freeze_time("2024-11-01"):
         ct = CladeTime()
@@ -79,13 +79,13 @@ def test_assign_old_tree(test_file_path, tmp_path, test_sequences):
     expected_assignments = pl.DataFrame(expected_assignment_dict)
 
     with freeze_time("2024-11-01"):
-        current_file = tmp_path / "current_assignments.csv"
+        current_file = tmp_path / "current_assignments.tsv"
         ct_current_tree = CladeTime()
         with patch("cladetime.sequence.filter", fasta_mock):
             current_assigned_clades = ct_current_tree.assign_clades(metadata_filtered, output_file=current_file)
             current_assigned_clades = current_assigned_clades.detail.select(["strain", "clade"]).collect()
 
-        old_file = tmp_path / "old_assignments.csv"
+        old_file = tmp_path / "old_assignments.tsv"
         ct_old_tree = CladeTime(tree_as_of="2024-08-02")
         with patch("cladetime.sequence.filter", fasta_mock):
             old_assigned_clades = ct_old_tree.assign_clades(metadata_filtered, output_file=old_file)
@@ -140,7 +140,7 @@ def test_assign_date_filters(test_file_path, tmp_path, test_sequences, min_date,
     )
 
     ct = CladeTime()
-    assignment_file = tmp_path / "assignments.csv"
+    assignment_file = tmp_path / "assignments.tsv"
     with patch("cladetime.sequence.filter", fasta_mock):
         assigned_clades = ct.assign_clades(metadata_filtered, output_file=assignment_file)
     assert len(assigned_clades.detail.collect()) == expected_rows
@@ -157,7 +157,7 @@ def test_assign_too_many_sequences_warning(tmp_path, test_file_path, test_sequen
     fasta_mock = MagicMock(return_value=test_file_path / sequence_file, name="cladetime.sequence.filter")
     with patch("cladetime.sequence.filter", fasta_mock):
         with pytest.warns(CladeTimeSequenceWarning):
-            assignments = ct.assign_clades(metadata_filtered, output_file=tmp_path / "assignments.csv")
+            assignments = ct.assign_clades(metadata_filtered, output_file=tmp_path / "assignments.tsv")
             # clade assignment should proceed, despite the warning
             assert len(assignments.detail.collect()) == 3
 
