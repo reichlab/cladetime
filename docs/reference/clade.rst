@@ -2,5 +2,5 @@
 Clade
 ==========
 
-.. autoclass:: cladetime._clade.Clade
+.. autoclass:: cladetime.clade.Clade
     :members:
