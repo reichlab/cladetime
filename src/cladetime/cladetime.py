@@ -285,10 +285,25 @@ class CladeTime:
             "Starting clade assignment pipeline", sequence_as_of=self.sequence_as_of, tree_as_of=self.tree_as_of
         )
 
+        # drop any clade-related columns from sequence_metadata (if any exists, it will be replaced
+        # by the results of the clade assignment)
+        sequence_metadata = sequence_metadata.drop(
+            [
+                col
+                for col in sequence_metadata.collect_schema().names()
+                if col not in self._config.nextstrain_standard_metadata_fields
+            ]
+        )
+
+        # from the sequence metadata, derive a set of sequence IDs (the "strain")
+        # column for use when filtering sequences in the .fasta file
+        logger.info("Collecting sequence IDs from metadata")
+        ids: set = sequence.get_metadata_ids(sequence_metadata)
+        sequence_count = len(ids)
+
         # if there are no sequences in the filtered metadata, stop the clade assignment
-        sequence_count = sequence_metadata.select(pl.len()).collect().item()
         if sequence_count == 0:
-            msg = "sequence_metadata is empty \n" "Stopping clade assignment...."
+            msg = "Sequence_metadata is empty or missing 'strain' columns \n" "Stopping clade assignment...."
             warnings.warn(
                 msg,
                 category=CladeTimeSequenceWarning,
@@ -309,17 +324,6 @@ class CladeTime:
                 category=CladeTimeSequenceWarning,
             )
 
-        # drop any clade-related columns from sequence_metadata (if any exists, it will be replaced
-        # by the results of the clade assignment)
-        sequence_metadata = sequence_metadata.drop(
-            [
-                col
-                for col in sequence_metadata.collect_schema().names()
-                if col not in self._config.nextstrain_standard_metadata_fields
-            ]
-        )
-
-        ids = sequence.get_metadata_ids(sequence_metadata)
         tree = Tree(self.tree_as_of, self.url_sequence)
 
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -155,7 +155,7 @@ shape: (5, 6)
 # Detailed clade assignments
 >>> clade_assignments.detail.collect().select(
 >>>     ["country", "location", "date", "strain", "clade_nextstrain"]
->>>    ).head (
+>>>    ).head()
 shape: (5, 5)
 ┌─────────┬──────────┬────────────┬─────────────────────┬──────────────────┐
 │ country ┆ location ┆ date       ┆ strain              ┆ clade_nextstrain │
@@ -168,7 +168,6 @@ shape: (5, 5)
 │ USA     ┆ AZ       ┆ 2024-10-05 ┆ USA/2024CV1721/2024 ┆ 24C              │
 │ USA     ┆ AZ       ┆ 2024-10-06 ┆ USA/2024CV1722/2024 ┆ recombinant      │
 └─────────┴──────────┴────────────┴─────────────────────┴──────────────────┘
-)
 ```
 
 ## Reproducibility

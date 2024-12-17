@@ -162,12 +162,11 @@ def test_assign_too_many_sequences_warning(tmp_path, test_file_path, test_sequen
             assert len(assignments.detail.collect()) == 3
 
 
-def test_assign_clades_no_sequences():
+@pytest.mark.parametrize("empty_input", [(pl.LazyFrame()), (pl.DataFrame()), (pl.DataFrame({"strain": []}))])
+def test_assign_clades_no_sequences(empty_input):
     ct = CladeTime()
     with pytest.warns(CladeTimeSequenceWarning):
-        assignments = ct.assign_clades(
-            pl.LazyFrame(),
-        )
+        assignments = ct.assign_clades(empty_input)
         assert assignments.detail.collect().shape == (0, 0)
         assert assignments.summary.collect().shape == (0, 0)
         assert assignments.meta == {}

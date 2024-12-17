@@ -30,8 +30,10 @@ dependencies = [
     "rich",
     "rich-click",
     "structlog",
+    "tqdm",
     "urllib3",
     "us",
+    "zstandard",
 ]
 
 [project.optional-dependencies]

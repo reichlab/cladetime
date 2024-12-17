@@ -134,6 +134,8 @@ six==1.16.0
     # via python-dateutil
 structlog==24.4.0
     # via cladetime (pyproject.toml)
+tqdm==4.67.1
+    # via cladetime (pyproject.toml)
 types-awscrt==0.23.0
     # via botocore-stubs
 types-python-dateutil==2.9.0.20241003
@@ -164,3 +166,5 @@ werkzeug==3.1.2
     # via moto
 xmltodict==0.14.2
     # via moto
+zstandard==0.23.0
+    # via cladetime (pyproject.toml)

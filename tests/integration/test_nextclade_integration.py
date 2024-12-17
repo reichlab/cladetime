@@ -29,7 +29,7 @@ def test_get_clade_assignments(test_file_path, tmp_path):
         "USA/NJ-CDC-LC1124615/2024",
     }
 
-    sequence_file = test_file_path / "test_sequences.fasta"
+    sequence_file = test_file_path / "test_sequences.fasta.xz"
     nextclade_dataset = test_file_path / "test_nextclade_dataset.zip"
     # _get_clade_assignments should create the output directory if it doesn't exist
     output_file = tmp_path / "clade_assignments" / "nextclade_assignments.tsv"

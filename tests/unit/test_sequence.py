@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import polars as pl
 import pytest
+import zstandard as zstd
 from Bio import SeqIO
 from polars.testing import assert_frame_equal
 
@@ -231,13 +232,19 @@ def test_get_metadata_ids():
     seq_set = sequence.get_metadata_ids(df)
     assert seq_set == expected_set
 
-    empty_lf = pl.LazyFrame([])
-    with pytest.raises(ValueError):
-        seq_set = sequence.get_metadata_ids(empty_lf)
+
+@pytest.mark.parametrize(
+    "bad_input",
+    [(pl.LazyFrame()), (pl.DataFrame()), (pl.DataFrame({"strain": []})), (pl.LazyFrame({"wrong_column": ["A1"]}))],
+)
+def test_get_metadata_ids_bad_data(bad_input):
+    seq_set = sequence.get_metadata_ids(bad_input)
+    assert seq_set == set()
 
 
-def test_filter(test_file_path, tmpdir):
-    test_sequence_file = test_file_path / "test_sequence.xz"
+@pytest.mark.parametrize("sequence_file", ["test_sequences.fasta.xz", "test_sequences.fasta.zst"])
+def test_filter(test_file_path, tmpdir, sequence_file):
+    test_sequence_file = test_file_path / sequence_file
     test_sequence_set = {
         "USA/MD-MDH-1820/2021",
         "USA/CA-CDPH-A3000000297958/2023",
@@ -247,7 +254,7 @@ def test_filter(test_file_path, tmpdir):
     }
     mock_download = MagicMock(return_value=test_sequence_file, name="_download_from_url_mock")
     with patch("cladetime.sequence._download_from_url", mock_download):
-        filtered_sequence_file = sequence.filter(test_sequence_set, "http://thisismocked.com", tmpdir)
+        filtered_sequence_file = sequence.filter(test_sequence_set, f"http://thisismocked/{test_sequence_file}", tmpdir)
 
     test_sequence_set.remove("STARFLEET/DS9-DS9-001/2024")
     actual_headers = []
@@ -257,19 +264,20 @@ def test_filter(test_file_path, tmpdir):
     assert set(actual_headers) == test_sequence_set
 
 
-def test_filter_no_sequences(test_file_path, tmpdir):
+@pytest.mark.parametrize("sequence_file", ["test_sequences.fasta.xz", "test_sequences.fasta.zst"])
+def test_filter_no_sequences(test_file_path, tmpdir, sequence_file):
     """Test filter with empty sequence set."""
-    test_sequence_file = test_file_path / "test_sequence.xz"
+    test_sequence_file = test_file_path / sequence_file
     test_sequence_set = {}
     mock_download = MagicMock(return_value=test_sequence_file, name="_download_from_url_mock")
     with patch("cladetime.sequence._download_from_url", mock_download):
-        filtered_no_sequence = sequence.filter(test_sequence_set, "http://thisismocked.com", tmpdir)
+        filtered_no_sequence = sequence.filter(test_sequence_set, f"http://thisismocked.com/{sequence_file}", tmpdir)
 
     contents = filtered_no_sequence.read_text(encoding=None)
     assert len(contents) == 0
 
 
-def test_filter_empty_fasta(tmpdir):
+def test_filter_empty_fasta_xz(tmpdir):
     # sequence file is empty
     test_sequence_set = {"A", "B", "C", "D"}
     empty_sequence_file = tmpdir / "empty_sequence_file.xz"
@@ -277,9 +285,34 @@ def test_filter_empty_fasta(tmpdir):
         pass
     mock_download = MagicMock(return_value=empty_sequence_file, name="_download_from_url_mock")
     with patch("cladetime.sequence._download_from_url", mock_download):
-        seq_filtered = sequence.filter(test_sequence_set, "http://thisismocked.com", tmpdir)
+        seq_filtered = sequence.filter(test_sequence_set, "http://thisismocked.com/mocky.xz", tmpdir)
     contents = seq_filtered.read_text(encoding=None)
     assert len(contents) == 0
+
+
+def test_filter_empty_fasta_zst(tmpdir):
+    # sequence file is empty
+    test_sequence_set = {"A", "B", "C", "D"}
+    empty_sequence_file = tmpdir / "empty_sequence_file.zst"
+
+    cctx = zstd.ZstdCompressor()
+    with open(empty_sequence_file, "wb") as f:
+        with cctx.stream_writer(f) as compressor:
+            compressor.write(b"")
+    mock_download = MagicMock(return_value=empty_sequence_file, name="_download_from_url_mock")
+    with patch("cladetime.sequence._download_from_url", mock_download):
+        seq_filtered = sequence.filter(test_sequence_set, "http://thisismocked.com/mocky.zst", tmpdir)
+    contents = seq_filtered.read_text(encoding=None)
+    assert len(contents) == 0
+
+
+def test_filter_invalid_fasta_compression(test_file_path, tmpdir):
+    test_sequence_file = test_file_path / "test_sequences.fasta.xz"
+    mock_download = MagicMock(return_value=test_sequence_file, name="_download_from_url_mock")
+    with pytest.raises(ValueError):
+        # sequence file has an invalid compression format
+        with patch("cladetime.sequence._download_from_url", mock_download):
+            sequence.filter(set(), "http://thisismocked.com/mocky.zip", tmpdir)
 
 
 def test_summarize_clades():
