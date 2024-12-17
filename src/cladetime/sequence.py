@@ -408,7 +408,7 @@ def parse_sequence_assignments(df_assignments: pl.DataFrame) -> pl.DataFrame:
 
 
 @time_function
-def filter(sequence_ids: set, url_sequence: str, output_path: Path, stream: bool = True) -> Path:
+def filter(sequence_ids: set, url_sequence: str, output_path: Path) -> Path:
     """Filter a fasta file against a specific set of sequences.
 
     Download a sequence file (in FASTA format) from Nexstrain, filter
