@@ -153,9 +153,9 @@ shape: (5, 6)
 └──────────┴────────────┴──────────────┴──────────────────┴─────────┴───────┘
 
 # Detailed clade assignments
->>> clade_assignments.detail.collect().select()
+>>> clade_assignments.detail.collect().select(
 >>>     ["country", "location", "date", "strain", "clade_nextstrain"]
->>>    ).head ()
+>>>    ).head()
 shape: (5, 5)
 ┌─────────┬──────────┬────────────┬─────────────────────┬──────────────────┐
 │ country ┆ location ┆ date       ┆ strain              ┆ clade_nextstrain │
