@@ -1,6 +1,5 @@
 """Functions for retrieving and parsing SARS-CoV-2 virus genome data."""
 
-import io
 import lzma
 import os
 import re
@@ -9,13 +8,15 @@ from io import BytesIO
 from pathlib import Path
 from urllib.parse import urlparse
 
+import biobear as bb
 import polars as pl
 import requests
 import structlog
 import us
-import zstandard as zstd
 from Bio import SeqIO
+from Bio.Seq import Seq
 from Bio.SeqIO import FastaIO
+from Bio.SeqRecord import SeqRecord
 from requests import Session
 
 from cladetime.types import StateFormat
@@ -435,7 +436,7 @@ def filter(sequence_ids: set, url_sequence: str, output_path: Path) -> Path:
     ------
     ValueError
         If url_sequence points to a file that doesn't have a
-        .zst or .xz extension.
+        .zst or .xz extension or if sequence_ids is empty
     """
     session = _get_session()
 
@@ -446,6 +447,10 @@ def filter(sequence_ids: set, url_sequence: str, output_path: Path) -> Path:
     if file_extension not in [".xz", ".zst"]:
         raise ValueError(f"Unsupported compression format: {file_extension}")
     filtered_sequence_file = output_path / "sequences_filtered.fasta"
+
+    # if there are no sequence_ids to filter on, return an empty file
+    if len(sequence_ids) == 0:
+        raise ValueError("Set of sequence ids to filter on is empty")
 
     logger.info("Downloading sequence file", url=url_sequence)
     sequence_file = _download_from_url(session, url_sequence, output_path)
@@ -458,22 +463,32 @@ def filter(sequence_ids: set, url_sequence: str, output_path: Path) -> Path:
 
     with open(filtered_sequence_file, "w") as fasta_output:
         if file_extension == ".xz":
-            with lzma.open(sequence_file, mode="rt") as handle:
-                for record in FastaIO.FastaIterator(handle):
-                    sequence_count += 1
-                    if record.id in sequence_ids:
-                        sequence_match_count += 1
-                        SeqIO.write(record, fasta_output, "fasta")
-        else:
-            with open(sequence_file, "rb") as handle:
-                dctx = zstd.ZstdDecompressor()
-                with dctx.stream_reader(handle) as reader:
-                    text_stream = io.TextIOWrapper(reader, encoding="utf-8")
-                    for record in FastaIO.FastaIterator(text_stream):
+            # with open(filtered_sequence_file, "w") as fasta_output:
+            if file_extension == ".xz":
+                with lzma.open(sequence_file, mode="rt") as handle:
+                    for record in FastaIO.FastaIterator(handle):
                         sequence_count += 1
                         if record.id in sequence_ids:
                             sequence_match_count += 1
                             SeqIO.write(record, fasta_output, "fasta")
+        else:
+            session = bb.new_session()
+            sequence_batches = session.read_fasta_file(
+                "/Users/rsweger/code/sequences.fasta.zst"
+            ).to_arrow_record_batch_reader()
+            # sequence_batches = session.read_fasta_file(str(sequence_file)).to_arrow_record_batch_reader()
+            for batch in sequence_batches:
+                batch_df = pl.DataFrame(batch)
+                sequence_count += len(batch_df)
+                # TODO: is order guaranteed here?
+                id_list = batch_df.get_column("id").to_list()
+                sequence_list = batch_df.get_column("sequence").to_list()
+                seq_match_list = [
+                    SeqRecord(Seq(sequence), id=id)
+                    for id, sequence in zip(id_list, sequence_list)
+                    if id in sequence_ids
+                ]
+                sequence_match_count += SeqIO.write(seq_match_list, fasta_output, "fasta")
 
     logger.info(
         "Filtered sequence file saved",
