@@ -16,6 +16,7 @@ import us
 import zstandard as zstd
 from Bio import SeqIO
 from Bio.SeqIO import FastaIO
+from Bio.SeqRecord import SeqRecord
 from requests import Session
 
 from cladetime.types import StateFormat
@@ -24,6 +25,40 @@ from cladetime.util.session import _get_session
 from cladetime.util.timing import time_function
 
 logger = structlog.get_logger()
+
+
+def _batch_iterator(iterator, batch_size):
+    """Returns lists of length batch_size.
+
+    This can be used on any iterator, for example to batch up
+    SeqRecord objects from Bio.SeqIO.parse(...), or to batch
+    Alignment objects from Bio.Align.parse(...), or simply
+    lines from a file handle.
+
+    This is a generator function, and it returns lists of the
+    entries from the supplied iterator.  Each list will have
+    batch_size entries, although the final list may be shorter.
+    """
+    batch = []
+    for entry in iterator:
+        batch.append(entry)
+        if len(batch) == batch_size:
+            yield batch
+            batch = []
+    if batch:
+        yield batch
+
+
+def _seq_records_to_polars(batch: list[SeqRecord]) -> pl.DataFrame:
+    """Convert batch of SeqRecord objects to Polars DataFrame."""
+    records_dict = {
+        "id": [record.id for record in batch],
+        "sequence": [str(record.seq) for record in batch],
+        "description": [record.description for record in batch],
+        "length": [len(record.seq) for record in batch],
+    }
+
+    return pl.DataFrame(records_dict)
 
 
 @time_function
@@ -449,6 +484,7 @@ def filter(sequence_ids: set, url_sequence: str, output_path: Path) -> Path:
 
     logger.info("Downloading sequence file", url=url_sequence)
     sequence_file = _download_from_url(session, url_sequence, output_path)
+    # sequence_file = Path("/Users/rsweger/code/sequences.fasta.zst")
     logger.info("Sequence file saved", path=sequence_file)
 
     # create a second fasta file with only those sequences in the metadata
@@ -466,14 +502,23 @@ def filter(sequence_ids: set, url_sequence: str, output_path: Path) -> Path:
                         SeqIO.write(record, fasta_output, "fasta")
         else:
             with open(sequence_file, "rb") as handle:
+                batch_size = 50000
                 dctx = zstd.ZstdDecompressor()
                 with dctx.stream_reader(handle) as reader:
                     text_stream = io.TextIOWrapper(reader, encoding="utf-8")
-                    for record in FastaIO.FastaIterator(text_stream):
-                        sequence_count += 1
-                        if record.id in sequence_ids:
-                            sequence_match_count += 1
-                            SeqIO.write(record, fasta_output, "fasta")
+                    record_iter = SeqIO.parse(text_stream, "fasta")
+                    seq_match_list = []
+                    for i, batch in enumerate(_batch_iterator(record_iter, batch_size)):
+                        sequence_count += len(batch)
+                        seq_match_list.extend([seq_record for seq_record in batch if seq_record.id in sequence_ids])
+                        if len(seq_match_list) > 0 and len(seq_match_list) <= batch_size:
+                            sequence_match_count += len(seq_match_list)
+                            SeqIO.write(seq_match_list, fasta_output, "fasta")
+                            seq_match_list = []
+                    # flush last batch of matching sequence record to disk
+                    if len(seq_match_list) > 0:
+                        sequence_match_count += len(seq_match_list)
+                        SeqIO.write(seq_match_list, fasta_output, "fasta")
 
     logger.info(
         "Filtered sequence file saved",
