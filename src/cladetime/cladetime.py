@@ -289,6 +289,7 @@ class CladeTime:
 
         # drop any clade-related columns from sequence_metadata (if any exists, it will be replaced
         # by the results of the clade assignment)
+        logger.info("Removing current sequence assignments from metadata")
         sequence_metadata = sequence_metadata.drop(
             [
                 col
