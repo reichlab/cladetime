@@ -48,8 +48,10 @@ iniconfig==2.0.0
     # via pytest
 jellyfish==1.1.0
     # via us
-jinja2==3.1.4
-    # via moto
+jinja2==3.1.5
+    # via
+    #   cladetime (pyproject.toml)
+    #   moto
 jmespath==1.0.1
     # via
     #   boto3
