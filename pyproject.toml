@@ -64,10 +64,6 @@ Repository = "https://github.com/reichlab/cladetime.git"
 Documentation = "https://cladetime.readthedocs.io/"
 Issues = "https://github.com/reichlab/cladetime/issues"
 
-[project.entry-points."console_scripts"]
-assign_clades = "cladetime.assign_clades:main"
-clade_list = "cladetime.get_clade_list:main"
-
 [build-system]
 requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
