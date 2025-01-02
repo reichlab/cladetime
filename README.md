@@ -1,4 +1,4 @@
-![cladetime CI status](https://github.com/reichlab/cladetime/actions/workflows/run-code-checks.yaml/badge.svg)
+![cladetime CI status](https://github.com/reichlab/cladetime/actions/workflows/ci.yaml/badge.svg)
 
 # User Guide
 

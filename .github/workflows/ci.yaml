@@ -1,4 +1,4 @@
-name: run-code-checks
+name: CI
 
 on:
   pull_request:
