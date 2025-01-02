@@ -1,12 +1,19 @@
 name: run-code-checks
 
 on:
-  push:
+  pull_request:
   workflow_dispatch:
+
+env:
+  FORCE_COLOR: "1"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PIP_NO_PYTHON_VERSION_WARNING: "1"
 
 jobs:
   run-checks:
+    name: Run linter and tests
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v4
@@ -25,7 +32,10 @@ jobs:
       - name: Lint 🧹
         run: ruff check
 
-      - name: Run unit tests 🧪
+      - name: Run tests 🧪
         run: |
-          pytest -k unit
+          pip install --upgrade pip
+          pip install -r requirements/requirements-dev.txt
+          pip install -e .
+          coverage run -m pytest
 
