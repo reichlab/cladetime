@@ -1,3 +1,5 @@
+![cladetime CI status](https://github.com/reichlab/cladetime/actions/workflows/ci.yaml/badge.svg)
+
 # User Guide
 
 Cladetime is a wrapper around Nextstrain's GenBank-based SARS-CoV-2 genome
