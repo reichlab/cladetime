@@ -196,14 +196,3 @@ Access to historical copies of `ncov_metadata` is what allows Cladetime to
 access past reference trees for custom clade assignments. Cladetime retrieves
 a separate set of `ncov_metadata` for the `tree_as_of` date and uses it to pass
 the correct reference tree to the `assign_clades` method.
-
-## Command line interface (CLI)
-
-Cladetime will also include a command line interface (CLI) for generating
-custom clade assignments without needed to write Python code.
-
-The CLI is not yet implemented, but it will look something like this:
-
-```bash
-assign_clades --sequence-as-of 2024-10-15 --tree-as-of 2024-09-01 --min-collection-date 2024-09-01 --max-collection-date 2024-09-30 --output-file clade_assignments.tsv
-```
