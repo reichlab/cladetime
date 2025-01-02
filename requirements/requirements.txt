@@ -15,10 +15,6 @@ certifi==2024.8.30
     # via requests
 charset-normalizer==3.4.0
     # via requests
-click==8.1.7
-    # via
-    #   cladetime (pyproject.toml)
-    #   rich-click
 cloudpathlib==0.20.0
     # via cladetime (pyproject.toml)
 colorama==0.4.6
@@ -66,10 +62,6 @@ requests==2.32.3
     #   cladetime (pyproject.toml)
     #   docker
 rich==13.9.4
-    # via
-    #   cladetime (pyproject.toml)
-    #   rich-click
-rich-click==1.8.3
     # via cladetime (pyproject.toml)
 rsa==4.7.2
     # via awscli
@@ -83,8 +75,6 @@ structlog==24.4.0
     # via cladetime (pyproject.toml)
 tqdm==4.67.1
     # via cladetime (pyproject.toml)
-typing-extensions==4.12.2
-    # via rich-click
 tzdata==2024.2
     # via pandas
 urllib3==2.2.3
