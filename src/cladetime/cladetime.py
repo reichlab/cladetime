@@ -32,15 +32,17 @@ class CladeTime:
         sequence metadata files that will be used by CladeTime
         properties and methods. Can be a datetime object or a
         string in YYYY-MM-DD format, both of which will be treated as
-        UTC. The default value is the current time.
+        UTC. The default value is the current UTC time. Dates passed
+        as YYYY-MM-DD strings will be set to 11:59:59 PM UTC.
     tree_as_of : datetime.datetime | str | None
         Sets the version of the Nextstrain reference tree that will be
         used by CladeTime. Can be a datetime object or a string in
         YYYY-MM-DD format, both of which will be treated as UTC.
         The default value is :any:`sequence_as_of<sequence_as_of>`,
         unless sequence_as_of is before reference tree availability
-        (2024-08-01), in which case tree_as_of will default to the
-        current time.
+        (2024-08-01), in which case tree_as_of will default to current
+        time UTC. Dates passed as YYYY-MM-DD strings will be
+        set to 11:59:59 PM UTC.
 
     Attributes
     ----------

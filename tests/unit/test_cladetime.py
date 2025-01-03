@@ -26,8 +26,8 @@ def test_cladetime_no_args():
             # (metadata for reference trees started publishing in Aug, 2024)
             "2024-09-01",
             "2024-01-01",
-            datetime(2024, 9, 1, tzinfo=timezone.utc),
-            datetime(2024, 9, 1, tzinfo=timezone.utc),
+            datetime(2024, 9, 1, 11, 59, 59, tzinfo=timezone.utc),
+            datetime(2024, 9, 1, 11, 59, 59, tzinfo=timezone.utc),
         ),
         (
             # sequence_as_of set to current date, tree_as_of defaults to sequence_as_of
@@ -41,7 +41,7 @@ def test_cladetime_no_args():
             None,
             "2024-09-01",
             datetime(2025, 7, 13, 16, 21, 34, tzinfo=timezone.utc),
-            datetime(2024, 9, 1, tzinfo=timezone.utc),
+            datetime(2024, 9, 1, 11, 59, 59, tzinfo=timezone.utc),
         ),
         (
             # tree_as_of set to sequence_as_of
@@ -62,7 +62,7 @@ def test_cladetime_no_args():
             # defaults to current date
             "2023-12-21",
             None,
-            datetime(2023, 12, 21, tzinfo=timezone.utc),
+            datetime(2023, 12, 21, 11, 59, 59, tzinfo=timezone.utc),
             datetime(2025, 7, 13, 16, 21, 34, tzinfo=timezone.utc),
         ),
         (
@@ -85,7 +85,7 @@ def test_cladetime_no_args():
             # 2024-08-01, so it should revert to current date
             "2023-07-13",
             "2074-07",
-            datetime(2023, 7, 13, tzinfo=timezone.utc),
+            datetime(2023, 7, 13, 11, 59, 59, tzinfo=timezone.utc),
             datetime(2025, 7, 13, 16, 21, 34, tzinfo=timezone.utc),
         ),
     ],

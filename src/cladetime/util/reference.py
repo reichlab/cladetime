@@ -28,7 +28,11 @@ def _get_date(original_date: datetime | str | None) -> datetime:
         new_date = original_date.replace(tzinfo=timezone.utc)
     elif isinstance(original_date, str):
         try:
-            new_date = datetime.strptime(original_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            new_date = (
+                datetime.strptime(original_date, "%Y-%m-%d")
+                .replace(hour=11, minute=59, second=59)
+                .replace(tzinfo=timezone.utc)
+            )
         except ValueError as e:
             raise ValueError(f"Invalid date format: {original_date}") from e
 
