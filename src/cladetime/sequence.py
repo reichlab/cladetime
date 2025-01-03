@@ -274,10 +274,10 @@ def filter_metadata(
 
     # Apply filters for min and max sequence collection date, if applicable
     if collection_min_date is not None:
-        collection_min_date = _get_date(collection_min_date)
+        collection_min_date = _get_date(collection_min_date).replace(hour=0, minute=0, second=0)
         filtered_metadata = filtered_metadata.filter(pl.col("date") >= collection_min_date)
     if collection_max_date is not None:
-        collection_max_date = _get_date(collection_max_date)
+        collection_max_date = _get_date(collection_max_date).replace(hour=0, minute=0, second=0)
         filtered_metadata = filtered_metadata.filter(pl.col("date") <= collection_max_date)
 
     # Create state mappings based on state_format parameter, including a DC alias, since
