@@ -88,7 +88,7 @@ jobs:
           # Generate report again, this time with a fail-under threshold
           coverage report --fail-under=80
 
-      - name: Upload HTML report if coverage check faileds
+      - name: Upload HTML report if coverage check fails
         uses: actions/upload-artifact@v4
         with:
             name: html-cov-report
