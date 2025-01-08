@@ -1,6 +1,6 @@
 [project]
 name = "cladetime"
-version = "0.2.2"
+version = "0.2.3"
 description = "Assign clades to SARS-CoV-2 genome sequences at a point in time."
 authors = [
     {name = "Reich Lab @ University of Massachusetts", email = "nick@umass.edu"},
