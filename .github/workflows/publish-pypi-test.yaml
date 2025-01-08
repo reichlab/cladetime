@@ -1,0 +1,61 @@
+# .github/workflows/publish-pypi-test.yaml
+# uses trusted publishing to publish the package to TestPyPI as described here:
+# https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
+name: Publish to Test PyPI
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build distribution 📦
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 🐍
+        uses: actions/setup-python@v5
+
+      - name: Install uv 🌟
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: ">=0.0.1"
+
+      - name: Build package for distribution 🛠️
+        run: |
+          uv build
+
+      - name: Upload distribution packages 📤
+        uses: actions/upload-artifact@v4
+        with:
+          name: cladetime-package-distribution
+          path: dist/
+
+  publish-to-testpypi:
+    name: Publish Python distribution to TestPyPI
+    needs:
+    - build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi-test
+      url: https://test.pypi.org/p/cladetime
+    permissions:
+       id-token: write  # needed for trusted publishing (i.e., OIDC)
+
+    steps:
+    - name: Download distribution artifacts 📥
+      uses: actions/download-artifact@v4
+      with:
+        name: cladetime-package-distributions
+        path: dist/
+    - name: Publish distribution to TestPyPI 🚀
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: https://test.pypi.org/legacy/
