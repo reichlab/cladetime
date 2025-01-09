@@ -1,20 +1,30 @@
 [project]
 name = "cladetime"
-version = "0.2.0"
-description = "Assign clades to viral genome sequences at a point in time."
+version = "0.2.3"
+description = "Assign clades to SARS-CoV-2 genome sequences at a point in time."
 authors = [
+    {name = "Reich Lab @ University of Massachusetts", email = "nick@umass.edu"},
+]
+maintainers = [
+    {name = "Becky Sweger", email = "rsweger@umass.edu"},
     {name = "Evan Ray", email="elray@umass.edu"},
     {name = "Ben Rogers", email = "bwrogers@umass.edu"},
-    {name = "Becky Sweger", email = "rsweger@umass.edu"},
+]
+license = {text = "MIT License"}
+keywords = ["biostatistics", "clade", "covid", "epidemiology", "genome", "sequence"]
+
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "License :: OSI Approved :: MIT License",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 
 requires-python = ">=3.11"
 readme = "README.md"
-
-classifiers = [
-  "Development Status :: 3 - Alpha",
-  "License :: OSI Approved :: MIT License",
-]
 
 dependencies = [
     "awscli>=1.32.92",
@@ -59,7 +69,7 @@ docs = [
     "sphinx-github-style",
     "sphinxext-opengraph",
     "sphinx_toolbox",
-    ]
+]
 
 [project.urls]
 Repository = "https://github.com/reichlab/cladetime.git"
@@ -69,6 +79,10 @@ Issues = "https://github.com/reichlab/cladetime/issues"
 [build-system]
 requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+namespaces = true
+where = ["src"]
 
 [tool.pytest.ini_options]
 tmp_path_retention_policy = "none"
@@ -89,9 +103,5 @@ lint.extend-select = ["I"]
 # Ignore import formatting rules in `__init__.py`
 "__init__.py" = ["I001"]
 
-[tools.setuptools]
-packages = ["cladetime"]
-
 [tool.mypy]
 ignore_missing_imports = true
-
