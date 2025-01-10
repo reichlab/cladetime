@@ -109,3 +109,8 @@ lint.extend-select = ["I"]
 [tool.mypy]
 ignore_missing_imports = false
 
+[tool.uv]
+# ensure setuptools_scm generates a version number that reflects latest tags
+# https://docs.astral.sh/uv/concepts/cache/#dynamic-metadata
+cache-keys = [{ git = { commit = true, tags = true } }]
+
