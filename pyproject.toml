@@ -85,6 +85,7 @@ namespaces = true
 where = ["src"]
 
 [tool.setuptools_scm]
+local_scheme = "no-local-version"
 
 [tool.pytest.ini_options]
 tmp_path_retention_policy = "none"
@@ -106,4 +107,5 @@ lint.extend-select = ["I"]
 "__init__.py" = ["I001"]
 
 [tool.mypy]
-ignore_missing_imports = true
+ignore_missing_imports = false
+
