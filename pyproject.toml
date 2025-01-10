@@ -1,6 +1,6 @@
 [project]
 name = "cladetime"
-version = "0.2.3"
+dynamic = ["version"]
 description = "Assign clades to SARS-CoV-2 genome sequences at a point in time."
 authors = [
     {name = "Reich Lab @ University of Massachusetts", email = "nick@umass.edu"},
@@ -77,12 +77,14 @@ Documentation = "https://cladetime.readthedocs.io/"
 Issues = "https://github.com/reichlab/cladetime/issues"
 
 [build-system]
-requires = ["setuptools>=64", "wheel"]
+requires = ["setuptools>=64", "wheel", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 namespaces = true
 where = ["src"]
+
+[tool.setuptools_scm]
 
 [tool.pytest.ini_options]
 tmp_path_retention_policy = "none"
