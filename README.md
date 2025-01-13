@@ -18,7 +18,7 @@ Cladetime is designed for use with US-based sequences from Homo sapiens.
 Cladetime is written in Python and can be installed using pip:
 
 ```bash
-pip install git+https://github.com/reichlab/cladetime.git
+pip install cladetime
 ```
 
 ## The CladeTime class

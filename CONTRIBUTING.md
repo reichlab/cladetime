@@ -149,7 +149,7 @@ of waiting several minutes for the pull request to generate a preview.
 1. Install the documentation dependencies:
 
     ```bash
-    uv pip install -r requirements/requirements-doc.txt
+    uv pip install -r requirements/requirements-docs.txt
     ```
 
 2. Build the documentation:
