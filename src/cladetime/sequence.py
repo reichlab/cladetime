@@ -472,17 +472,23 @@ def filter(sequence_ids: set, url_sequence: str, output_path: Path) -> Path:
                             sequence_match_count += 1
                             SeqIO.write(record, fasta_output, "fasta")
         else:
-            session = bb.new_session()
-            sequence_batches = session.read_fasta_file(
-                "/Users/rsweger/code/sequences.fasta.zst"
-            ).to_arrow_record_batch_reader()
-            # sequence_batches = session.read_fasta_file(str(sequence_file)).to_arrow_record_batch_reader()
+            # for .zst files, use biobear + polars to read the .fasta file
+            # and filter it in batches (instead of reading the the fasta file
+            # line by line)
+            bb_session = bb.new_session()
+
+             # stream .fasta file in batches (biobear reader -> pyarrow RecordBatchReader)
+            sequence_batches = bb_session.read_fasta_file(str(sequence_file)).to_arrow_record_batch_reader()
+
             for batch in sequence_batches:
+                # convert each batch of biobear sequence records to a polars DataFrame
                 batch_df = pl.DataFrame(batch)
                 sequence_count += len(batch_df)
-                # TODO: is order guaranteed here?
+                # create two lists: one for sequence ids and one for sequences
                 id_list = batch_df.get_column("id").to_list()
                 sequence_list = batch_df.get_column("sequence").to_list()
+                # zip the above lists into a final list of biopython SeqRecord
+                # objects that match one of the sequence_ids passed to this function
                 seq_match_list = [
                     SeqRecord(Seq(sequence), id=id)
                     for id, sequence in zip(id_list, sequence_list)
