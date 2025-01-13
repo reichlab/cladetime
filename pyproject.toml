@@ -28,6 +28,7 @@ readme = "README.md"
 
 dependencies = [
     "awscli>=1.32.92",
+    "biobear",
     "biopython",
     "boto3",
     "cloudpathlib",
