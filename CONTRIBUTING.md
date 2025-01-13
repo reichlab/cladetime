@@ -46,7 +46,7 @@ will install the version of Python specified in
 [.python-version](.python-version).
 
     ```bash
-    uv venv
+    uv venv --seed
     ```
 
 5. Install the project's dependencies, including an editable copy of the
