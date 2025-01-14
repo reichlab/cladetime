@@ -29,7 +29,7 @@ Cladetime can be installed with `pip <https://pip.pypa.io/>`_:
 
 .. code-block:: bash
 
-   $ pip install git+https://github.com/reichlab/cladetime.git
+   $ pip install cladetime
 
 Detailed documentation
 ----------------------

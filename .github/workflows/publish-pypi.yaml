@@ -1,0 +1,103 @@
+# .github/workflows/publish-pypi.yaml
+# uses trusted publishing to publish the package to PyPI and create a GitHub
+# release as described here:
+# https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
+name: Publish to PyPI and create GitHub release
+
+on:
+  push:
+    tags:
+      # only run workflow for tags in release format
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+jobs:
+  build:
+    name: Build distribution 📦
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python 🐍
+        uses: actions/setup-python@v5
+
+      - name: Install uv 🌟
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: ">=0.0.1"
+
+      - name: Build package for distribution 🛠️
+        run: |
+          uv build
+
+      - name: Upload distribution packages 📤
+        uses: actions/upload-artifact@v4
+        with:
+          name: cladetime-package-distribution
+          path: dist/
+
+  publish-to-pypi:
+    name: Publish Python distribution to PyPI
+    needs:
+    - build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/cladetime
+    permissions:
+       id-token: write  # needed for trusted publishing (i.e., OIDC)
+
+    steps:
+    - name: Download distribution artifacts 📥
+      uses: actions/download-artifact@v4
+      with:
+        name: cladetime-package-distribution
+        path: dist/
+    - name: Publish distribution to PyPI 🚀
+      uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    name: >-
+      Sign the Python distribution with Sigstore
+      and upload them to GitHub Release
+    needs:
+    - publish-to-pypi
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write  # required for creating GitHub Releases
+      id-token: write  # required for sigstore
+
+    steps:
+    - name: Download distribution artifacts 📥
+      uses: actions/download-artifact@v4
+      with:
+        name: cladetime-package-distribution
+        path: dist/
+    - name: Sign the dists with Sigstore 📝
+      uses: sigstore/gh-action-sigstore-python@v3.0.0
+      with:
+        inputs: >-
+          ./dist/*.tar.gz
+          ./dist/*.whl
+    - name: Create GitHub Release 🛠️
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: >-
+        gh release create
+        "$GITHUB_REF_NAME"
+        --repo "$GITHUB_REPOSITORY"
+    - name: Upload artifact signatures to GitHub Release 📤
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      # Upload to GitHub Release.
+      # `dist/` contains the built packages, and the
+      # sigstore-produced signatures and certificates.
+      run: >-
+        gh release upload
+        "$GITHUB_REF_NAME" dist/**
+        --repo "$GITHUB_REPOSITORY"
