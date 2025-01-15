@@ -215,7 +215,7 @@ class CladeTime:
 
         return config
 
-    def assign_clades(self, sequence_metadata: pl.LazyFrame, output_file: str | None = None) -> Clade:
+    def assign_clades(self, sequence_metadata: pl.LazyFrame, output_file: Path | str | None = None) -> Clade:
         """Assign clades to a specified set of sequences.
 
         For each sequence in a sequence file (.fasta), assign a Nextstrain
@@ -332,9 +332,9 @@ class CladeTime:
         with tempfile.TemporaryDirectory() as tmpdir:
             filtered_sequences = sequence.filter(ids, self.url_sequence, Path(tmpdir))
             nextclade_dataset = _get_nextclade_dataset(
-                tree.ncov_metadata.get("nextclade_version_num"),
-                tree.ncov_metadata.get("nextclade_dataset_name").lower(),
-                tree.ncov_metadata.get("nextclade_dataset_version"),
+                tree.ncov_metadata.get("nextclade_version_num", ""),
+                tree.ncov_metadata.get("nextclade_dataset_name", "").lower(),
+                tree.ncov_metadata.get("nextclade_dataset_version", ""),
                 Path(tmpdir),
             )
             logger.info(
@@ -343,7 +343,7 @@ class CladeTime:
                 nextclade_dataset_version=tree.ncov_metadata.get("nextclade_dataset_version"),
             )
             assignments = _get_clade_assignments(
-                tree.ncov_metadata.get("nextclade_version_num"), filtered_sequences, nextclade_dataset, output_file
+                tree.ncov_metadata.get("nextclade_version_num", ""), filtered_sequences, nextclade_dataset, output_file
             )
             logger.info(
                 "Clade assignments done",
@@ -351,13 +351,13 @@ class CladeTime:
                 nextclade_dataset=tree.ncov_metadata.get("nextclade_dataset_version"),
             )
 
-            assigned_clades = pl.read_csv(assignments, separator="\t", infer_schema_length=100000)
+            assigned_clades = pl.read_csv(assignments, separator="\t", infer_schema_length=100000).lazy()
 
         # join the assigned clades with the original sequence metadata, create a summarized LazyFrame
         # of clade counts by location, date, and host, and return both (along with metadata) in a
         # Clade object
         assigned_clades = sequence_metadata.join(
-            assigned_clades.lazy(), left_on="strain", right_on="seqName", how="left"
+            assigned_clades, left_on="strain", right_on="seqName", how="left"
         )
         summarized_clades = sequence.summarize_clades(
             assigned_clades, group_by=["location", "date", "host", "clade_nextstrain", "country"]
