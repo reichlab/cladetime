@@ -21,7 +21,17 @@ def moto_file_path() -> Path:
 
 @pytest.fixture(scope="function")
 def demo_mode(monkeypatch):
-    "Set demo mode to True for tests using the Nextstrain 100K sequence files."
+    """
+    Set demo mode to True for testing.
+
+    This fixture activates CladeTime's demo mode, which uses the Nextstrain
+    100k dataset instead of the entire universe of SARS-CoV-2 sequences.
+
+    Use with caution: the 100K dataset is compressed using LSTD, which
+    follows a different code path than the full dataset normally used by
+    Cladetime (which is compressed using ZSTD and is read in batches
+    using biobear).
+    """
     demo_mode = "true"
     monkeypatch.setenv("CLADETIME_DEMO", demo_mode)
     yield demo_mode
