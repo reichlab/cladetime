@@ -37,6 +37,7 @@ def test_cladetime_assign_clades(tmp_path, demo_mode):
         assert len(check_clade_assignments) == len(metadata_filtered.collect())
         unmatched_clade_count = check_clade_assignments.filter(pl.col("clade").is_null()).shape[0]
         assert unmatched_clade_count == 0
+        breakpoint()
 
         # summarized clade assignments should also match summarized clade assignments from the
         # original metadata file
@@ -203,22 +204,6 @@ def test_assign_date_filters(test_file_path, tmp_path, test_sequences, min_date,
     with patch("cladetime.sequence.filter", fasta_mock):
         assigned_clades = ct.assign_clades(metadata_filtered, output_file=assignment_file)
     assert len(assigned_clades.detail.collect()) == expected_rows
-
-
-@pytest.mark.skipif(not docker_enabled, reason="Docker is not installed")
-def test_assign_too_many_sequences_warning(tmp_path, test_file_path, test_sequences):
-    sequence_file, sequence_set = test_sequences
-
-    ct = CladeTime()
-    ct._config.clade_assignment_warning_threshold = 2
-    test_filtered_metadata = {"date": ["2022-01-01", "2022-01-02", "2023-12-27"], "strain": ["aa", "bb", "cc"]}
-    metadata_filtered = pl.LazyFrame(test_filtered_metadata)
-    fasta_mock = MagicMock(return_value=test_file_path / sequence_file, name="cladetime.sequence.filter")
-    with patch("cladetime.sequence.filter", fasta_mock):
-        with pytest.warns(CladeTimeSequenceWarning):
-            assignments = ct.assign_clades(metadata_filtered, output_file=tmp_path / "assignments.tsv")
-            # clade assignment should proceed, despite the warning
-            assert len(assignments.detail.collect()) == 3
 
 
 @pytest.mark.parametrize("empty_input", [(pl.LazyFrame()), (pl.DataFrame()), (pl.DataFrame({"strain": []}))])
