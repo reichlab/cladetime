@@ -463,13 +463,12 @@ def filter(sequence_ids: set, url_sequence: str, output_path: Path) -> Path:
 
     with open(filtered_sequence_file, "w") as fasta_output:
         if file_extension == ".xz":
-            if file_extension == ".xz":
-                with lzma.open(sequence_file, mode="rt") as handle:
-                    for record in FastaIO.FastaIterator(handle):
-                        sequence_count += 1
-                        if record.id in sequence_ids:
-                            sequence_match_count += 1
-                            SeqIO.write(record, fasta_output, "fasta")
+            with lzma.open(sequence_file, mode="rt") as handle:
+                for record in FastaIO.FastaIterator(handle):
+                    sequence_count += 1
+                    if record.id in sequence_ids:
+                        sequence_match_count += 1
+                        SeqIO.write(record, fasta_output, "fasta")
         else:
             # for .zst files, use biobear + polars to read the .fasta file
             # and filter it in batches (instead of reading the the fasta file

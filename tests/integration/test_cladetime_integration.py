@@ -130,7 +130,7 @@ def test_assign_clade_detail(test_file_path, tmpdir, sequence_file):
     mock_download = MagicMock(return_value=test_sequence_file, name="_download_from_url_mock")
     with patch("cladetime.sequence._download_from_url", mock_download):
         ct = CladeTime()
-        ct.url_sequence = test_sequence_file.as_uri()
+        ct.url_sequence = test_sequence_file.as_uri()  # used to determine extension when reading .fasta file
         test_metadata = pl.read_csv(test_file_path / "metadata.tsv.zst", separator="\t", infer_schema_length=100000) \
             .filter(pl.col("strain").is_in(expected_sequence_assignments.keys())) \
             .lazy()
@@ -145,6 +145,35 @@ def test_assign_clade_detail(test_file_path, tmpdir, sequence_file):
         strain_clade_dict = detailed_df.select("strain", "clade_nextstrain").to_dicts()
         for item in strain_clade_dict:
             assert expected_sequence_assignments[item["strain"]] == item["clade_nextstrain"]
+
+        # check metadata
+        assert clades.meta.get("sequences_to_assign") == 1
+        assert clades.meta.get("sequences_assigned") == 1
+
+
+@pytest.mark.skipif(not docker_enabled, reason="Docker is not installed")
+@pytest.mark.parametrize("sequence_file", ["test_sequences.fasta.xz", "test_sequences.fasta.zst"])
+def test_assign_clade_detail_missing_assignments(test_file_path, tmpdir, sequence_file):
+    """Test the final clade assignment linefile when some sequences are not assigned clades."""
+    test_sequence_file = test_file_path / sequence_file
+
+    mock_download = MagicMock(return_value=test_sequence_file, name="_download_from_url_mock")
+    with patch("cladetime.sequence._download_from_url", mock_download):
+        ct = CladeTime()
+        ct.url_sequence = test_sequence_file.as_uri()  # used to determine extension when reading .fasta file
+        test_metadata = pl.read_csv(test_file_path / "metadata.tsv.zst", separator="\t", infer_schema_length=100000).lazy()
+        test_metadata_count = len(test_metadata.collect())
+
+        clades = ct.assign_clades(test_metadata, output_file=tmpdir / "assignments.tsv")
+        detailed_df = clades.detail.collect()
+
+        # assign_clades detail output should have the same number of records as the input metadata
+        assert len(detailed_df) == test_metadata_count
+
+        # check metadata
+        # only one sequence in the test metadata is in the test fasta
+        assert clades.meta.get("sequences_to_assign") == test_metadata_count
+        assert clades.meta.get("sequences_assigned") == 1
 
 
 @pytest.mark.skipif(not docker_enabled, reason="Docker is not installed")

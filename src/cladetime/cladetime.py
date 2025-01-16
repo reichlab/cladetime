@@ -345,24 +345,32 @@ class CladeTime:
             assignments = _get_clade_assignments(
                 tree.ncov_metadata.get("nextclade_version_num", ""), filtered_sequences, nextclade_dataset, output_file
             )
+            assigned_clades_df = pl.read_csv(assignments, separator="\t", infer_schema_length=100000)
+            # get a count of non-null clade_nextstrain values
+            # (this is the number of sequences that were assigned to a clade)
+            assigned_sequence_count = assigned_clades_df.select(pl.count("clade_nextstrain")).to_series().to_list()[0]
+
             logger.info(
-                "Clade assignments done",
+                "Nextclade assignments done",
+                sequences_to_assign=sequence_count,
+                sequences_assigned=assigned_sequence_count,
                 assignment_file=assignments,
                 nextclade_dataset=tree.ncov_metadata.get("nextclade_dataset_version"),
             )
-
-            assigned_clades = pl.read_csv(assignments, separator="\t", infer_schema_length=100000).lazy()
 
         # join the assigned clades with the original sequence metadata, create a summarized LazyFrame
         # of clade counts by location, date, and host, and return both (along with metadata) in a
         # Clade object
         assigned_clades = sequence_metadata.join(
-            assigned_clades, left_on="strain", right_on="seqName", how="left"
+            assigned_clades_df.lazy(), left_on="strain", right_on="seqName", how="left"
         )
         summarized_clades = sequence.summarize_clades(
             assigned_clades, group_by=["location", "date", "host", "clade_nextstrain", "country"]
         )
+
         metadata = {
+            "sequences_to_assign": sequence_count,
+            "sequences_assigned": assigned_sequence_count,
             "sequence_as_of": self.sequence_as_of,
             "tree_as_of": self.tree_as_of,
             "nextclade_dataset_version": tree.ncov_metadata.get("nextclade_dataset_version"),
