@@ -463,7 +463,6 @@ def filter(sequence_ids: set, url_sequence: str, output_path: Path) -> Path:
 
     with open(filtered_sequence_file, "w") as fasta_output:
         if file_extension == ".xz":
-            # with open(filtered_sequence_file, "w") as fasta_output:
             if file_extension == ".xz":
                 with lzma.open(sequence_file, mode="rt") as handle:
                     for record in FastaIO.FastaIterator(handle):
@@ -490,7 +489,7 @@ def filter(sequence_ids: set, url_sequence: str, output_path: Path) -> Path:
                 # zip the above lists into a final list of biopython SeqRecord
                 # objects that match one of the sequence_ids passed to this function
                 seq_match_list = [
-                    SeqRecord(Seq(sequence), id=id)
+                    SeqRecord(Seq(sequence), id=id, description=id)
                     for id, sequence in zip(id_list, sequence_list)
                     if id in sequence_ids
                 ]
