@@ -37,7 +37,6 @@ def test_cladetime_assign_clades(tmp_path, demo_mode):
         assert len(check_clade_assignments) == len(metadata_filtered.collect())
         unmatched_clade_count = check_clade_assignments.filter(pl.col("clade").is_null()).shape[0]
         assert unmatched_clade_count == 0
-        breakpoint()
 
         # summarized clade assignments should also match summarized clade assignments from the
         # original metadata file
