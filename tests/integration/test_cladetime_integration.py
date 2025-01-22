@@ -109,9 +109,9 @@ def test_assign_old_tree(test_file_path, tmp_path, test_sequences):
         expected_summary, old_assigned_clades.summary.collect(), check_column_order=False, check_row_order=False
     )
 
-    # metadata should reflect ncov metadata as of 2024-11-01
     assert old_assigned_clades.meta.get("sequence_as_of") == datetime(2024, 11, 1, tzinfo=timezone.utc)
-    assert old_assigned_clades.meta.get("tree_as_of") == datetime(2024, 8, 2, tzinfo=timezone.utc)
+    assert old_assigned_clades.meta.get("tree_as_of") == datetime(2024, 8, 2, 11, 59, 59, tzinfo=timezone.utc)
+    # nextclade metadata should reflect its state on tree_as_of (2024-08-02)
     assert old_assigned_clades.meta.get("nextclade_dataset_version") == "2024-07-17--12-57-03Z"
     assert old_assigned_clades.meta.get("nextclade_version_num") == "3.8.2"
     assert old_assigned_clades.meta.get("assignment_as_of") == "2024-11-01 00:00"
