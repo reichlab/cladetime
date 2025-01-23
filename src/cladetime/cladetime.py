@@ -315,6 +315,18 @@ class CladeTime:
         else:
             logger.info("Sequence count complete", sequence_count=sequence_count)
 
+        # if there are many sequences in the filtered metadata, warn that clade assignment will
+        # take a long time and require a lot of resources
+        if sequence_count > self._config.clade_assignment_warning_threshold:
+            msg = (
+                f"Sequence count is {sequence_count}: clade assignment will run longer than usual. "
+                "You may want to run clade assignments on smaller subsets of sequences."
+            )
+            warnings.warn(
+                msg,
+                category=CladeTimeSequenceWarning,
+            )
+
         tree = Tree(self.tree_as_of, self.url_sequence)
 
         with tempfile.TemporaryDirectory() as tmpdir:
