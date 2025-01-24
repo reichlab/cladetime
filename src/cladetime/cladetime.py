@@ -319,7 +319,7 @@ class CladeTime:
         # take a long time and require a lot of resources
         if sequence_count > self._config.clade_assignment_warning_threshold:
             msg = (
-                f"About to assign clades to {sequence_count} sequnces \n" 
+                f"About to assign clades to {sequence_count} sequences. \n" 
                 "The assignment process is resource intensive. \n"
                 "Depending on the limitations of your machine, \n"
                 "you may want to use a smaller subset of sequences."
