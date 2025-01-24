@@ -260,7 +260,7 @@ def test_filter(test_file_path, tmpdir, sequence_file):
     actual_headers = []
     with open(filtered_sequence_file, "r") as fasta_test:
         for record in SeqIO.parse(fasta_test, "fasta"):
-            actual_headers.append(record.description)
+            actual_headers.append(record.id)
     assert set(actual_headers) == test_sequence_set
 
 
@@ -271,10 +271,8 @@ def test_filter_no_sequences(test_file_path, tmpdir, sequence_file):
     test_sequence_set = {}
     mock_download = MagicMock(return_value=test_sequence_file, name="_download_from_url_mock")
     with patch("cladetime.sequence._download_from_url", mock_download):
-        filtered_no_sequence = sequence.filter(test_sequence_set, f"http://thisismocked.com/{sequence_file}", tmpdir)
-
-    contents = filtered_no_sequence.read_text(encoding=None)
-    assert len(contents) == 0
+        with pytest.raises(ValueError):
+            sequence.filter(test_sequence_set, f"http://thisismocked.com/{sequence_file}", tmpdir)
 
 
 def test_filter_empty_fasta_xz(tmpdir):

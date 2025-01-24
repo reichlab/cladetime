@@ -2,6 +2,8 @@
 #    uv pip compile pyproject.toml -o requirements/requirements.txt
 awscli==1.35.20
     # via cladetime (pyproject.toml)
+biobear==0.23.5
+    # via cladetime (pyproject.toml)
 biopython==1.84
     # via cladetime (pyproject.toml)
 boto3==1.35.54
@@ -44,7 +46,9 @@ pandas==2.2.3
 polars==1.17.1
     # via cladetime (pyproject.toml)
 pyarrow==18.0.0
-    # via cladetime (pyproject.toml)
+    # via
+    #   cladetime (pyproject.toml)
+    #   biobear
 pyasn1==0.6.1
     # via rsa
 pygments==2.18.0

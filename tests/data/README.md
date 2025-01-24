@@ -4,7 +4,7 @@ This directory contains test files used by CladeTime's test suite.
 
 * `moto_fixture` directory contains files used when recreating Nextstrain/Nextclade data in the moto mocked S3 bucket
 * `test_metadata.tsv` was used to test `get_clade_list` before that functionality moved to variant-nowcast-hub
-* `metadata.tsv.xz` and `metadata.tsv.xz` are used to test setting CladeTime's sequence_metadata property.
+* `metadata.tsv.xz` and `metadata.tsv.zst` are used to test setting CladeTime's sequence_metadata property.
 * `test_sequences.fasta` isn't used by tests directly, but is the human-readable version of test_sequences.fasta.[xz|zst] below
 * `test_sequences.fasta.xz` and `test_sequences.fasta.zst` are used to test the sequence filter function
 * `test_sequences.fasta`, `test_sequences_fake.fasta`, and `test_nexclade_dataset.zip` are used in Nextclade integration tests
