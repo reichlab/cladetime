@@ -1,0 +1,8 @@
+# instruct GitHub dependabot to scan github actions for updates
+
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
