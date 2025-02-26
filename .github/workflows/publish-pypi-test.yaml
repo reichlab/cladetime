@@ -24,7 +24,7 @@ jobs:
         uses: actions/setup-python@v5
 
       - name: Install uv 🌟
-        uses: astral-sh/setup-uv@887a942a15af3a7626099df99e897a18d9e5ab3a # v5.1.0
+        uses: astral-sh/setup-uv@1edb52594c857e2b5b13128931090f0640537287 # v5.3.0
 
       - name: Build package for distribution 🛠️
         run: |
@@ -54,6 +54,6 @@ jobs:
         name: cladetime-package-distribution
         path: dist/
     - name: Publish distribution to TestPyPI 🚀
-      uses: pypa/gh-action-pypi-publish@15c56dba361d8335944d31a2ecd17d700fc7bcbc # v1.1.12
+      uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
       with:
         repository-url: https://test.pypi.org/legacy/
