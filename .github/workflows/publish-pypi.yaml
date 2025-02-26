@@ -9,6 +9,8 @@ on:
     tags:
       # only run workflow for tags in release format
       - "v[0-9]+.[0-9]+.[0-9]+"
+permissions:
+  contents: read
 
 jobs:
   build:
