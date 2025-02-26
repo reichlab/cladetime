@@ -58,7 +58,7 @@ jobs:
         name: cladetime-package-distribution
         path: dist/
     - name: Publish distribution to PyPI 🚀
-      uses: pypa/gh-action-pypi-publish@release/v1
+      uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
 
   github-release:
     name: >-
@@ -79,7 +79,7 @@ jobs:
         name: cladetime-package-distribution
         path: dist/
     - name: Sign the dists with Sigstore 📝
-      uses: sigstore/gh-action-sigstore-python@v3.0.0
+      uses: sigstore/gh-action-sigstore-python@f514d46b907ebcd5bedc05145c03b69c1edd8b46 # v3.0.0
       with:
         inputs: >-
           ./dist/*.tar.gz
