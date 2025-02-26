@@ -6,6 +6,8 @@ on:
       - main
   pull_request:
   workflow_dispatch:
+permissions:
+  contents: read
 
 env:
   FORCE_COLOR: "1"
