@@ -69,13 +69,11 @@ test suite. If the tests pass, you're ready to start developing on Cladetime!
 
 ### Making and submitting changes
 
-To get started, create a new branch for your changes. The branch name should
-use the format
-`<your initials>/<change-name>/<issue-number-if-applicable>`.
+Cladetime follows the Hubverse Python development process.
 
-After you've created a new branch, make and test your changes.
-We recommend making incremental changes and small commits so it's
-easier for code reviewers to understand the updates.
+Once you have the project set up on your machine, follow the
+[development checklist in the Hubverse Developer Guide](https://hubverse.io/en/latest/developer/python.html#checklists)
+to update the code and submit a pull request.
 
 Cladetime uses the following guidelines and tools to maintain code quality.
 If you want to contribute but have questions about these tools, free to ask
@@ -94,17 +92,6 @@ and new features should be accompanied by new tests.
 If you're adding or updating features that impact the documentation, please
 include those updates with your changes (see below for more information about
 updating Cladetime's documentation).
-
-When your changes are complete and you're ready to submit a [pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests),
-follow these steps:
-
-1. If the repository has a CHANGELOG.md file, update it with a description of
-your changes.
-2. Push the changes to your forked repository.
-3. From your forked repository on GitHub, create a pull request for your branch, targeting
-the `main` branch of the original `cladetime` repository.
-
-4. A team member will review the pull request and be in touch.
 
 ### Adding new dependencies
 
@@ -174,3 +161,8 @@ adding a new project dependency as described above:
     ```bash
     uv pip install -r requirements/requirements-docs.txt
     ```
+
+## Release a new version of Cladetime
+
+If you're a Cladetime maintainer and want to create a new release, follow the
+[Python release checklist in the Hubverse Developer Guide](https://hubverse.io/en/latest/developer/python.html#release-checklist).
