@@ -50,7 +50,7 @@ dev = [
     "boto3-stubs[s3]",
     "coverage",
     "freezegun",
-    "jinja2>3.1.4",
+    "jinja2>=3.1.6",
     "moto",
     "mypy",
     "pytest",
@@ -61,7 +61,7 @@ dev = [
 ]
 docs = [
     "furo",
-    "jinja2>3.1.4",
+    "jinja2>=3.1.6",
     "matplotlib",
     "myst-parser",
     "sphinx>=5.0,<6.0",
