@@ -2,7 +2,7 @@
 #    uv pip compile pyproject.toml --extra docs -o requirements/requirements-docs.txt
 alabaster==0.7.16
     # via sphinx
-anyio==4.6.2.post1
+anyio==4.9.0
     # via
     #   starlette
     #   watchfiles
@@ -12,35 +12,34 @@ apeye-core==1.1.5
     # via apeye
 autodocsumm==0.2.14
     # via sphinx-toolbox
-awscli==1.36.3
+awscli==1.38.18
     # via cladetime (pyproject.toml)
-babel==2.16.0
+babel==2.17.0
     # via sphinx
-beautifulsoup4==4.12.3
+beautifulsoup4==4.13.3
     # via
     #   furo
     #   sphinx-toolbox
-biopython==1.84
+biobear==0.23.7
     # via cladetime (pyproject.toml)
-boto3==1.35.62
+biopython==1.85
     # via cladetime (pyproject.toml)
-botocore==1.35.62
+boto3==1.37.18
+    # via cladetime (pyproject.toml)
+botocore==1.37.18
     # via
     #   awscli
     #   boto3
     #   s3transfer
-cachecontrol==0.14.1
+cachecontrol==0.14.2
     # via sphinx-toolbox
-certifi==2024.8.30
+certifi==2025.1.31
     # via requests
-charset-normalizer==3.4.0
+charset-normalizer==3.4.1
     # via requests
-click==8.1.7
-    # via
-    #   cladetime (pyproject.toml)
-    #   rich-click
-    #   uvicorn
-cloudpathlib==0.20.0
+click==8.1.8
+    # via uvicorn
+cloudpathlib==0.21.0
     # via cladetime (pyproject.toml)
 colorama==0.4.6
     # via
@@ -63,17 +62,17 @@ docutils==0.16
     #   sphinx
     #   sphinx-tabs
     #   sphinx-toolbox
-domdf-python-tools==3.9.0
+domdf-python-tools==3.10.0
     # via
     #   apeye
     #   apeye-core
     #   dict2css
     #   sphinx-toolbox
-filelock==3.16.1
+filelock==3.18.0
     # via
     #   cachecontrol
     #   sphinx-toolbox
-fonttools==4.55.0
+fonttools==4.56.0
     # via matplotlib
 furo==2023.3.27
     # via cladetime (pyproject.toml)
@@ -88,9 +87,9 @@ idna==3.10
     #   requests
 imagesize==1.4.1
     # via sphinx
-jellyfish==1.1.0
+jellyfish==1.1.3
     # via us
-jinja2==3.1.5
+jinja2==3.1.6
     # via
     #   cladetime (pyproject.toml)
     #   myst-parser
@@ -100,7 +99,7 @@ jmespath==1.0.1
     # via
     #   boto3
     #   botocore
-kiwisolver==1.4.7
+kiwisolver==1.4.8
     # via matplotlib
 markdown-it-py==2.2.0
     # via
@@ -111,13 +110,13 @@ markupsafe==3.0.2
     # via
     #   jinja2
     #   sphinx-jinja2-compat
-matplotlib==3.9.2
+matplotlib==3.10.1
     # via cladetime (pyproject.toml)
 mdit-py-plugins==0.3.5
     # via myst-parser
 mdurl==0.1.2
     # via markdown-it-py
-more-itertools==10.5.0
+more-itertools==10.6.0
     # via cssutils
 msgpack==1.1.0
     # via cachecontrol
@@ -125,7 +124,7 @@ myst-parser==1.0.0
     # via cladetime (pyproject.toml)
 natsort==8.4.0
     # via domdf-python-tools
-numpy==2.1.3
+numpy==2.2.4
     # via
     #   biopython
     #   contourpy
@@ -137,31 +136,33 @@ packaging==24.2
     #   sphinx
 pandas==2.2.3
     # via cladetime (pyproject.toml)
-pillow==11.0.0
+pillow==11.1.0
     # via matplotlib
-platformdirs==4.3.6
+platformdirs==4.3.7
     # via apeye
-polars==1.18.0
+polars==1.25.2
     # via cladetime (pyproject.toml)
-pyarrow==18.0.0
-    # via cladetime (pyproject.toml)
+pyarrow==19.0.1
+    # via
+    #   cladetime (pyproject.toml)
+    #   biobear
 pyasn1==0.6.1
     # via rsa
-pygments==2.18.0
+pygments==2.19.1
     # via
     #   furo
     #   rich
     #   sphinx
     #   sphinx-prompt
     #   sphinx-tabs
-pyparsing==3.2.0
+pyparsing==3.2.1
     # via matplotlib
 python-dateutil==2.9.0.post0
     # via
     #   botocore
     #   matplotlib
     #   pandas
-pytz==2024.2
+pytz==2025.1
     # via pandas
 pyyaml==6.0.2
     # via
@@ -175,22 +176,18 @@ requests==2.32.3
     #   docker
     #   sphinx
 rich==13.9.4
-    # via
-    #   cladetime (pyproject.toml)
-    #   rich-click
-rich-click==1.8.4
     # via cladetime (pyproject.toml)
 rsa==4.7.2
     # via awscli
-ruamel-yaml==0.18.6
+ruamel-yaml==0.18.10
     # via sphinx-toolbox
 ruamel-yaml-clib==0.2.12
     # via ruamel-yaml
-s3transfer==0.10.3
+s3transfer==0.11.4
     # via
     #   awscli
     #   boto3
-six==1.16.0
+six==1.17.0
     # via
     #   html5lib
     #   python-dateutil
@@ -231,7 +228,7 @@ sphinx-prompt==1.5.0
     # via sphinx-toolbox
 sphinx-tabs==3.4.5
     # via sphinx-toolbox
-sphinx-toolbox==3.8.1
+sphinx-toolbox==3.9.0
     # via cladetime (pyproject.toml)
 sphinxcontrib-applehelp==2.0.0
     # via sphinx
@@ -247,9 +244,9 @@ sphinxcontrib-serializinghtml==2.0.0
     # via sphinx
 sphinxext-opengraph==0.9.1
     # via cladetime (pyproject.toml)
-starlette==0.41.2
+starlette==0.46.1
     # via sphinx-autobuild
-structlog==24.4.0
+structlog==25.2.0
     # via cladetime (pyproject.toml)
 tabulate==0.9.0
     # via sphinx-toolbox
@@ -257,12 +254,13 @@ tqdm==4.67.1
     # via cladetime (pyproject.toml)
 typing-extensions==4.12.2
     # via
+    #   anyio
+    #   beautifulsoup4
     #   domdf-python-tools
-    #   rich-click
     #   sphinx-toolbox
-tzdata==2024.2
+tzdata==2025.1
     # via pandas
-urllib3==2.2.3
+urllib3==2.3.0
     # via
     #   cladetime (pyproject.toml)
     #   botocore
@@ -270,13 +268,13 @@ urllib3==2.2.3
     #   requests
 us==3.2.0
     # via cladetime (pyproject.toml)
-uvicorn==0.32.0
+uvicorn==0.34.0
     # via sphinx-autobuild
-watchfiles==0.24.0
+watchfiles==1.0.4
     # via sphinx-autobuild
 webencodings==0.5.1
     # via html5lib
-websockets==14.1
+websockets==15.0.1
     # via sphinx-autobuild
 zstandard==0.23.0
     # via cladetime (pyproject.toml)
