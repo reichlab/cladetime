@@ -75,6 +75,7 @@ docs = [
 [project.urls]
 Repository = "https://github.com/reichlab/cladetime.git"
 Documentation = "https://cladetime.readthedocs.io/"
+Changelog = "https://github.com/reichlab/cladetime/blob/main/CHANGELOG.md"
 Issues = "https://github.com/reichlab/cladetime/issues"
 
 [build-system]

@@ -5,6 +5,11 @@ All notable changes to Cladetime are documented here. Cladetime uses
 
 ## [unreleased]
 
+### Added
+
+- Cladetime now has a CHANGELOG
+- Acknowledgements section in the [README](README.md)
+
 ## 0.3.0
 
 ### Changed
