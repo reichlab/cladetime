@@ -198,3 +198,19 @@ Access to historical copies of `ncov_metadata` is what allows Cladetime to
 access past reference trees for custom clade assignments. Cladetime retrieves
 a separate set of `ncov_metadata` for the `tree_as_of` date and uses it to pass
 the correct reference tree to the `assign_clades` method.
+
+## Acknowledgements
+
+Cladetime uses Genbank-based genome sequence data and metadata published by Nextstrain:
+
+- [Hadfield et al., Nextstrain: real-time tracking of pathogen evolution, Bioinformatics (2018)](https://academic.oup.com/bioinformatics/article/34/23/4121/5001388?login=false)
+- [https://nextstrain.org/](https://nextstrain.org/)
+
+Additionally, Cladetime uses the
+[Nextclade project](https://docs.nextstrain.org/projects/nextclade/en/stable/)
+to assign clades to SARS-CoV-2 genome sequences.
+
+- Aksamentov, I., Roemer, C., Hodcroft, E. B., & Neher, R. A., (2021).
+  Nextclade: clade assignment, mutation calling and quality control for viral genomes.
+  Journal of Open Source Software, 6(67), 3773, [https://doi.org/10.21105/joss.03773](https://doi.org/10.21105/joss.03773)
+- [https://clades.nextstrain.org](https://clades.nextstrain.org)
