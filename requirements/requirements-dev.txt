@@ -120,7 +120,7 @@ responses==0.25.7
     # via moto
 rich==13.9.4
     # via cladetime (pyproject.toml)
-rsa==4.7.2
+rsa==4.9
     # via awscli
 ruff==0.11.2
     # via cladetime (pyproject.toml)
