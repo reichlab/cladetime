@@ -74,7 +74,7 @@ filelock==3.18.0
     #   sphinx-toolbox
 fonttools==4.56.0
     # via matplotlib
-furo==2023.3.27
+furo==2024.8.6
     # via cladetime (pyproject.toml)
 h11==0.14.0
     # via uvicorn
