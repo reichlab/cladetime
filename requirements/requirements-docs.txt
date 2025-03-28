@@ -101,7 +101,7 @@ jmespath==1.0.1
     #   botocore
 kiwisolver==1.4.8
     # via matplotlib
-markdown-it-py==2.2.0
+markdown-it-py==3.0.0
     # via
     #   mdit-py-plugins
     #   myst-parser
