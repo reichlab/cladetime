@@ -6,8 +6,22 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+        # group all run-of-the mill updates into a single pull request
+    groups:
+      gha-updates:
+        applies-to: version-updates
+        update-types:
+          - patch
+          - minor
 
   - package-ecosystem: "pip"
-    directory: "/requirements/"
+    directory: "/"
     schedule:
       interval: "weekly"
+    # group all run-of-the mill updates into a single pull request
+    groups:
+      py-updates:
+        applies-to: version-updates
+        update-types:
+          - patch
+          - minor
