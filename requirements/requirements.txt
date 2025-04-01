@@ -23,7 +23,7 @@ colorama==0.4.6
     # via awscli
 docker==7.1.0
     # via cladetime (pyproject.toml)
-docutils==0.21.2
+docutils==0.16
     # via awscli
 idna==3.10
     # via requests
@@ -67,7 +67,7 @@ requests==2.32.3
     #   docker
 rich==14.0.0
     # via cladetime (pyproject.toml)
-rsa==4.9
+rsa==4.7.2
     # via awscli
 s3transfer==0.11.4
     # via
