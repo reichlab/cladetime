@@ -118,7 +118,7 @@ requests==2.32.3
     #   responses
 responses==0.25.7
     # via moto
-rich==13.9.4
+rich==14.0.0
     # via cladetime (pyproject.toml)
 rsa==4.7.2
     # via awscli
