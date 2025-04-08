@@ -14,12 +14,11 @@ maintainers = [
     {name = "Nick Reich", email = "nick@umass.edu"},
 ]
 
-license = {text = "MIT License"}
+license = "MIT"
 keywords = ["biostatistics", "clade", "covid", "epidemiology", "genome", "sequence"]
 
 classifiers = [
   "Development Status :: 4 - Beta",
-  "License :: OSI Approved :: MIT License",
   "Natural Language :: English",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
@@ -119,4 +118,3 @@ ignore_missing_imports = false
 # ensure setuptools_scm generates a version number that reflects latest tags
 # https://docs.astral.sh/uv/concepts/cache/#dynamic-metadata
 cache-keys = [{ git = { commit = true, tags = true } }]
-
