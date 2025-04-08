@@ -3,13 +3,17 @@ name = "cladetime"
 dynamic = ["version"]
 description = "Assign clades to SARS-CoV-2 genome sequences at a point in time."
 authors = [
-    {name = "Reich Lab @ University of Massachusetts", email = "nick@umass.edu"},
-]
-maintainers = [
-    {name = "Becky Sweger", email = "rsweger@umass.edu"},
+    {name = "Becky Sweger", email = "bsweger@gmail.com"},
     {name = "Evan Ray", email="elray@umass.edu"},
     {name = "Ben Rogers", email = "bwrogers@umass.edu"},
 ]
+
+maintainers = [
+    {name = "Zhian Kamvar", email = "zkamvar@umass.edu"},
+    {name = "Mattew Cornell", email = "cornell@schoolph.umass.edu"},
+    {name = "Nick Reich", email = "nick@umass.edu"},
+]
+
 license = {text = "MIT License"}
 keywords = ["biostatistics", "clade", "covid", "epidemiology", "genome", "sequence"]
 
