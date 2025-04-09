@@ -18,7 +18,6 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-    versioning-strategy: "widen"
     # group all run-of-the mill updates into a single pull request
     groups:
       py-updates:
