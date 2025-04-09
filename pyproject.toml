@@ -5,7 +5,7 @@ description = "Assign clades to SARS-CoV-2 genome sequences at a point in time."
 authors = [
     {name = "Becky Sweger", email = "bsweger@gmail.com"},
     {name = "Evan Ray", email="elray@umass.edu"},
-    {name = "Ben Rogers", email = "bwrogers@umass.edu"},
+    {name = "Ben Rogers", email = "benwrogers87@gmail.com"},
 ]
 
 maintainers = [
