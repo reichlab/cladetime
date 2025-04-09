@@ -67,7 +67,7 @@ docs = [
     "jinja2>=3.1.6",
     "matplotlib",
     "myst-parser",
-    "sphinx>=5.0,<6.0",
+    "sphinx",
     "sphinx-autobuild",
     "sphinx-copybutton",
     "sphinx-github-style",
