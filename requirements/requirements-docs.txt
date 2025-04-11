@@ -120,7 +120,7 @@ more-itertools==10.6.0
     # via cssutils
 msgpack==1.1.0
     # via cachecontrol
-myst-parser==1.0.0
+myst-parser==4.0.1
     # via cladetime (pyproject.toml)
 natsort==8.4.0
     # via domdf-python-tools
