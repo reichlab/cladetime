@@ -24,3 +24,7 @@ updates:
     groups:
       py-updates:
         applies-to: version-updates
+        update-types:
+          - patch
+          - minor
+          - major
