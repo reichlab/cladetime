@@ -80,7 +80,7 @@ pandas==2.2.3
     # via cladetime (pyproject.toml)
 pluggy==1.6.0
     # via pytest
-polars==1.29.0
+polars==1.28.1
     # via cladetime (pyproject.toml)
 pyarrow==20.0.0
     # via
@@ -143,7 +143,10 @@ types-requests==2.32.0.20250515
 types-s3transfer==0.12.0
     # via boto3-stubs
 typing-extensions==4.13.2
-    # via mypy
+    # via
+    #   boto3-stubs
+    #   mypy
+    #   mypy-boto3-s3
 tzdata==2025.2
     # via pandas
 urllib3==2.4.0

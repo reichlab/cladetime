@@ -141,7 +141,7 @@ pillow==11.2.1
     # via matplotlib
 platformdirs==4.3.8
     # via apeye
-polars==1.29.0
+polars==1.28.1
     # via cladetime (pyproject.toml)
 pyarrow==20.0.0
     # via
@@ -182,6 +182,8 @@ rsa==4.7.2
     # via awscli
 ruamel-yaml==0.18.10
     # via sphinx-toolbox
+ruamel-yaml-clib==0.2.12
+    # via ruamel-yaml
 s3transfer==0.12.0
     # via
     #   awscli
@@ -243,8 +245,6 @@ sphinxcontrib-serializinghtml==2.0.0
     # via sphinx
 sphinxext-opengraph==0.10.0
     # via cladetime (pyproject.toml)
-standard-imghdr==3.10.14
-    # via sphinx-jinja2-compat
 starlette==0.46.2
     # via sphinx-autobuild
 structlog==25.3.0
@@ -255,6 +255,7 @@ tqdm==4.67.1
     # via cladetime (pyproject.toml)
 typing-extensions==4.13.2
     # via
+    #   anyio
     #   beautifulsoup4
     #   domdf-python-tools
     #   sphinx-toolbox
