@@ -23,7 +23,7 @@ colorama==0.4.6
     # via awscli
 docker==7.1.0
     # via cladetime (pyproject.toml)
-docutils==0.19
+docutils==0.21.2
     # via awscli
 idna==3.10
     # via requests
@@ -37,13 +37,13 @@ markdown-it-py==3.0.0
     # via rich
 mdurl==0.1.2
     # via markdown-it-py
-numpy==2.2.5
+numpy==2.2.6
     # via
     #   biopython
     #   pandas
 pandas==2.2.3
     # via cladetime (pyproject.toml)
-polars==1.28.1
+polars==1.29.0
     # via cladetime (pyproject.toml)
 pyarrow==20.0.0
     # via
@@ -67,7 +67,7 @@ requests==2.32.3
     #   docker
 rich==14.0.0
     # via cladetime (pyproject.toml)
-rsa==4.7.2
+rsa==4.9.1
     # via awscli
 s3transfer==0.12.0
     # via
