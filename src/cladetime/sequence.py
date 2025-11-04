@@ -20,7 +20,7 @@ from Bio.SeqRecord import SeqRecord
 from requests import Session
 
 from cladetime.types import StateFormat
-from cladetime.util.reference import _get_date
+from cladetime.util.reference import _get_date, _get_metadata_from_hub
 from cladetime.util.session import _get_session
 from cladetime.util.timing import time_function
 
@@ -129,20 +129,58 @@ def get_metadata(
 def _get_ncov_metadata(
     url_ncov_metadata: str,
     session: Session | None = None,
+    as_of_date: datetime | None = None,
 ) -> dict:
-    """Return metadata emitted by the Nextstrain ncov pipeline."""
+    """Return metadata emitted by the Nextstrain ncov pipeline.
+
+    If the URL is empty or the S3 fetch fails, and as_of_date is provided,
+    this function will fall back to variant-nowcast-hub archives.
+    """
     if not session:
         session = _get_session(retry=False)
+
+    # Check if URL is empty (indicates S3 metadata unavailable)
+    if not url_ncov_metadata or url_ncov_metadata.strip() == "":
+        if as_of_date:
+            logger.info(
+                "URL is empty, attempting fallback to variant-nowcast-hub archives",
+                date=as_of_date.strftime("%Y-%m-%d"),
+            )
+            try:
+                metadata = _get_metadata_from_hub(as_of_date)
+                logger.info("Successfully retrieved metadata from Hub fallback")
+                return metadata
+            except Exception as e:
+                logger.error("Hub fallback failed", error=str(e))
+                return {}
+        else:
+            logger.warn("URL is empty and no as_of_date provided for fallback")
+            return {}
 
     response = session.get(url_ncov_metadata)
     if not response.ok:
         logger.warn(
-            "Failed to retrieve ncov metadata",
+            "Failed to retrieve ncov metadata from S3",
             status_code=response.status_code,
             response_text=response.text,
             request=response.request.url,
             request_body=response.request.body,
         )
+
+        # Try fallback to variant-nowcast-hub archives if date is provided
+        if as_of_date:
+            try:
+                logger.info(
+                    "Attempting fallback to variant-nowcast-hub archives",
+                    date=as_of_date.strftime("%Y-%m-%d"),
+                )
+                metadata = _get_metadata_from_hub(as_of_date)
+                logger.info("Successfully retrieved metadata from Hub fallback")
+                return metadata
+            except Exception as e:
+                logger.error("Hub fallback also failed", error=str(e))
+                return {}
+
         return {}
 
     metadata = response.json()

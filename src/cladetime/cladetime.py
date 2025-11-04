@@ -77,9 +77,19 @@ class CladeTime:
 
         # Nextstrain began publishing ncov pipeline metadata starting on 2024-08-01
         if self.sequence_as_of >= self._config.nextstrain_min_ncov_metadata_date:
-            self.url_ncov_metadata = _get_s3_object_url(
-                self._config.nextstrain_ncov_bucket, self._config.nextstrain_ncov_metadata_key, self.sequence_as_of
-            )[1]
+            try:
+                self.url_ncov_metadata = _get_s3_object_url(
+                    self._config.nextstrain_ncov_bucket, self._config.nextstrain_ncov_metadata_key, self.sequence_as_of
+                )[1]
+            except ValueError as e:
+                # S3 doesn't have historical metadata - will use Hub fallback when fetching
+                logger.warn(
+                    "Nextstrain S3 metadata not available, will use Hub fallback",
+                    date=self.sequence_as_of.strftime("%Y-%m-%d"),
+                    error=str(e),
+                )
+                # Set to empty string so fallback will be triggered
+                self.url_ncov_metadata = ""
         else:
             self.url_ncov_metadata = None
 
@@ -181,7 +191,8 @@ class CladeTime:
         Nextstrain began publishing ncov pipeline metadata.
         """
         if self.url_ncov_metadata:
-            metadata = sequence._get_ncov_metadata(self.url_ncov_metadata)
+            # Pass sequence_as_of date for Hub fallback support
+            metadata = sequence._get_ncov_metadata(self.url_ncov_metadata, as_of_date=self.sequence_as_of)
             return metadata
         else:
             metadata = {}
