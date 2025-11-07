@@ -5,6 +5,32 @@ All notable changes to Cladetime are documented here. Cladetime uses
 
 ## [unreleased]
 
+## 2.0.0
+
+### Added
+
+- Automatic fallback to variant-nowcast-hub archives when Nextstrain S3 historical metadata is unavailable
+- New `_get_metadata_from_hub()` function in `cladetime/util/reference.py` to retrieve metadata from variant-nowcast-hub GitHub archives
+- Support for historical metadata access dating back to September 2024 via variant-nowcast-hub archives
+- Comprehensive test coverage for fallback mechanism with 5 new test cases in `tests/unit/util/test_reference.py`
+
+### Changed
+
+- `_get_ncov_metadata()` now accepts optional `as_of_date` parameter to enable fallback support
+- `_get_ncov_metadata()` logic simplified to eliminate code duplication and improve clarity (thanks @nickreich for the review feedback)
+- `Tree` class now catches `ValueError` from `_get_s3_object_url()` and triggers fallback when metadata is missing
+- `CladeTime` class now handles missing S3 metadata gracefully with automatic fallback
+- **BREAKING**: Test infrastructure updated with new `mock_s3_sequence_data()` and `patch_s3_for_tests()` fixtures to handle Nextstrain's October 2025 S3 cleanup
+- All integration and unit tests now use `patch_s3_for_tests` fixture to mock S3 calls
+
+### Fixed
+
+- CladeTime no longer fails when accessing historical dates after Nextstrain's October 2025 cleanup of S3 metadata files
+- Tests now pass consistently regardless of Nextstrain S3 historical data availability
+- Proper error handling and logging when both S3 and fallback sources are unavailable
+
+## 0.3.0
+
 ### Added
 
 - Cladetime now has a CHANGELOG

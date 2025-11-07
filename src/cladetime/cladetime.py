@@ -190,8 +190,9 @@ class CladeTime:
         This property will be empty for dates before 2024-08-01, when
         Nextstrain began publishing ncov pipeline metadata.
         """
-        if self.url_ncov_metadata:
+        if self.url_ncov_metadata is not None:
             # Pass sequence_as_of date for Hub fallback support
+            # Note: empty string "" is valid here - it triggers fallback in _get_ncov_metadata
             metadata = sequence._get_ncov_metadata(self.url_ncov_metadata, as_of_date=self.sequence_as_of)
             return metadata
         else:

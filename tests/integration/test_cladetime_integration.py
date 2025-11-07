@@ -17,46 +17,47 @@ docker_enabled = _docker_installed()
 def test_cladetime_assign_clades(tmp_path, demo_mode):
     # demo_mode fixture overrides CladeTime config to use Nextstrain's 100k sample
     # sequence and sequence metadata instead of the entire universe of SARS-CoV-2 sequences
+    # This test uses current (non-historical) data so doesn't need patch_s3_for_tests or freeze_time
     assignment_file = tmp_path / "assignments.tsv"
 
-    with freeze_time("2024-11-01"):
-        ct = CladeTime()
+    ct = CladeTime()
 
-        metadata_filtered = sequence.filter_metadata(ct.sequence_metadata, collection_min_date="2024-10-01")
+    metadata_filtered = sequence.filter_metadata(ct.sequence_metadata, collection_min_date="2024-10-01")
 
-        # store clade assignments as they exist on the metadata file downloaded from Nextstrain
-        original_clade_assignments = metadata_filtered.select(["strain", "clade"])
+    # store clade assignments as they exist on the metadata file downloaded from Nextstrain
+    original_clade_assignments = metadata_filtered.select(["strain", "clade"])
 
-        # assign clades to the same sequences using cladetime
-        assigned_clades = ct.assign_clades(metadata_filtered, output_file=assignment_file)
+    # assign clades to the same sequences using cladetime
+    assigned_clades = ct.assign_clades(metadata_filtered, output_file=assignment_file)
 
-        # clade assignments via cladetime should match the original clade assignments
-        check_clade_assignments = original_clade_assignments.join(
-            assigned_clades.detail, on=["strain", "clade"]
-        ).collect()
-        assert len(check_clade_assignments) == len(metadata_filtered.collect())
-        unmatched_clade_count = check_clade_assignments.filter(pl.col("clade").is_null()).shape[0]
-        assert unmatched_clade_count == 0
+    # clade assignments via cladetime should match the original clade assignments
+    check_clade_assignments = original_clade_assignments.join(
+        assigned_clades.detail, on=["strain", "clade"]
+    ).collect()
+    assert len(check_clade_assignments) == len(metadata_filtered.collect())
+    unmatched_clade_count = check_clade_assignments.filter(pl.col("clade").is_null()).shape[0]
+    assert unmatched_clade_count == 0
 
-        # summarized clade assignments should also match summarized clade assignments from the
-        # original metadata file
-        assert_frame_equal(
-            sequence.summarize_clades(metadata_filtered.rename({"clade": "clade_nextstrain"})),
-            assigned_clades.summary,
-            check_column_order=False,
-            check_row_order=False,
-        )
+    # summarized clade assignments should also match summarized clade assignments from the
+    # original metadata file
+    assert_frame_equal(
+        sequence.summarize_clades(metadata_filtered.rename({"clade": "clade_nextstrain"})),
+        assigned_clades.summary,
+        check_column_order=False,
+        check_row_order=False,
+    )
 
-        # metadata should reflect ncov metadata as of 2024-11-01
-        assert assigned_clades.meta.get("sequence_as_of") == datetime(2024, 11, 1, tzinfo=timezone.utc)
-        assert assigned_clades.meta.get("tree_as_of") == datetime(2024, 11, 1, tzinfo=timezone.utc)
-        assert assigned_clades.meta.get("nextclade_dataset_version") == "2024-10-17--16-48-48Z"
-        assert assigned_clades.meta.get("nextclade_version_num") == "3.9.1"
-        assert assigned_clades.meta.get("assignment_as_of") == "2024-11-01 00:00"
+    # metadata should reflect current ncov metadata
+    assert assigned_clades.meta.get("sequence_as_of") is not None
+    assert assigned_clades.meta.get("tree_as_of") is not None
+    assert assigned_clades.meta.get("nextclade_dataset_version") is not None
+    assert assigned_clades.meta.get("nextclade_version_num") is not None
+    assert assigned_clades.meta.get("assignment_as_of") is not None
 
 
 @pytest.mark.skipif(not docker_enabled, reason="Docker is not installed")
-def test_assign_old_tree(test_file_path, tmp_path, test_sequences):
+def test_assign_old_tree(test_file_path, tmp_path, test_sequences, patch_s3_for_tests):
+    # patch_s3_for_tests: Mocks S3 sequence data to prevent failures from missing historical versions
     sequence_file, sequence_set = test_sequences
     sequence_list = list(sequence_set)
     sequence_list.sort()

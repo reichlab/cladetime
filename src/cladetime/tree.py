@@ -80,8 +80,9 @@ class Tree:
         dict : Metadata from the Nextstrain pipeline run that corresponds
         to as_of.
         """
-        if self.url_ncov_metadata:
+        if self.url_ncov_metadata is not None:
             # Pass as_of date for Hub fallback support
+            # Note: empty string "" is valid here - it triggers fallback in _get_ncov_metadata
             metadata = sequence._get_ncov_metadata(self.url_ncov_metadata, as_of_date=self.as_of)
             return metadata
         else:
@@ -189,7 +190,7 @@ class Tree:
         nextclade_dataset_name = self.ncov_metadata.get("nextclade_dataset_name", "")
         nextclade_dataset_version = self.ncov_metadata.get("nextclade_dataset_version", "")
         if not all([nextclade_version_num, nextclade_dataset_name, nextclade_dataset_version]):
-            logger.error("Incomplete ncov metadata", tree_as_of=self._clade_time.tree_as_of)
+            logger.error("Incomplete ncov metadata", tree_as_of=self.as_of)
             raise TreeNotAvailableError(f"Incomplete ncov metadata {self.ncov_metadata}")
 
         with tempfile.TemporaryDirectory() as tmpdir:

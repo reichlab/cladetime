@@ -133,57 +133,74 @@ def _get_ncov_metadata(
 ) -> dict:
     """Return metadata emitted by the Nextstrain ncov pipeline.
 
-    If the URL is empty or the S3 fetch fails, and as_of_date is provided,
-    this function will fall back to variant-nowcast-hub archives.
+    Retrieval strategy:
+    1. If url_ncov_metadata is provided, attempt to fetch from S3
+    2. If S3 fails or URL is empty, fall back to variant-nowcast-hub archives (requires as_of_date)
+    3. If both sources fail, return empty dict
+
+    Parameters
+    ----------
+    url_ncov_metadata : str
+        URL to the metadata_version.json file on Nextstrain S3.
+        Can be empty string to skip S3 and go directly to fallback.
+    session : Session | None, optional
+        Requests session object. If None, a new session is created.
+    as_of_date : datetime | None, optional
+        Date for which to retrieve metadata. Required for fallback to variant-nowcast-hub.
+        If None and S3 fetch fails, function returns empty dict.
+
+    Returns
+    -------
+    dict
+        Metadata dictionary with keys:
+        - nextclade_dataset_name: e.g. "SARS-CoV-2"
+        - nextclade_dataset_name_full: e.g. "nextstrain/sars-cov-2/wuhan-hu-1/orfs"
+        - nextclade_dataset_version: e.g. "2024-09-25--21-50-30Z"
+        - nextclade_version: e.g. "nextclade 3.8.2"
+        - nextclade_version_num: e.g. "3.8.2"
+
+        Returns empty dict if both S3 and Hub fallback fail.
     """
     if not session:
         session = _get_session(retry=False)
 
-    # Check if URL is empty (indicates S3 metadata unavailable)
-    if not url_ncov_metadata or url_ncov_metadata.strip() == "":
-        if as_of_date:
+    metadata = None
+
+    # Try to retrieve metadata from S3 if URL is provided
+    if url_ncov_metadata and url_ncov_metadata.strip():
+        response = session.get(url_ncov_metadata)
+        if response.ok:
+            metadata = response.json()
+        else:
+            logger.warn(
+                "Failed to retrieve ncov metadata from S3",
+                status_code=response.status_code,
+                response_text=response.text,
+                request=response.request.url,
+                request_body=response.request.body,
+            )
+
+    # If S3 retrieval failed or URL was empty, try Hub fallback
+    if metadata is None and as_of_date:
+        try:
             logger.info(
-                "URL is empty, attempting fallback to variant-nowcast-hub archives",
+                "Attempting fallback to variant-nowcast-hub archives",
                 date=as_of_date.strftime("%Y-%m-%d"),
             )
-            try:
-                metadata = _get_metadata_from_hub(as_of_date)
-                logger.info("Successfully retrieved metadata from Hub fallback")
-                return metadata
-            except Exception as e:
-                logger.error("Hub fallback failed", error=str(e))
-                return {}
-        else:
+            metadata = _get_metadata_from_hub(as_of_date)
+            logger.info("Successfully retrieved metadata from Hub fallback")
+        except Exception as e:
+            logger.error("Hub fallback failed", error=str(e))
+
+    # If both S3 and Hub failed, return empty dict
+    if metadata is None:
+        if not url_ncov_metadata or not url_ncov_metadata.strip():
             logger.warn("URL is empty and no as_of_date provided for fallback")
-            return {}
-
-    response = session.get(url_ncov_metadata)
-    if not response.ok:
-        logger.warn(
-            "Failed to retrieve ncov metadata from S3",
-            status_code=response.status_code,
-            response_text=response.text,
-            request=response.request.url,
-            request_body=response.request.body,
-        )
-
-        # Try fallback to variant-nowcast-hub archives if date is provided
-        if as_of_date:
-            try:
-                logger.info(
-                    "Attempting fallback to variant-nowcast-hub archives",
-                    date=as_of_date.strftime("%Y-%m-%d"),
-                )
-                metadata = _get_metadata_from_hub(as_of_date)
-                logger.info("Successfully retrieved metadata from Hub fallback")
-                return metadata
-            except Exception as e:
-                logger.error("Hub fallback also failed", error=str(e))
-                return {}
-
+        else:
+            logger.warn("Both S3 and Hub fallback failed to retrieve metadata")
         return {}
 
-    metadata = response.json()
+    # Enrich metadata with additional fields
     if metadata.get("nextclade_dataset_name", "").lower() == "sars-cov-2":
         metadata["nextclade_dataset_name_full"] = "nextstrain/sars-cov-2/wuhan-hu-1/orfs"
     nextclade_version = metadata.get("nextclade_version")

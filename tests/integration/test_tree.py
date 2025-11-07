@@ -11,7 +11,8 @@ from cladetime.util.reference import _docker_installed
 docker_enabled = _docker_installed()
 
 
-def test__get_tree_url():
+def test__get_tree_url(patch_s3_for_tests):
+    # patch_s3_for_tests: Mocks S3 sequence data to prevent failures from missing historical versions
     with freeze_time("2024-08-13 16:21:34"):
         ct = CladeTime()
         tree = Tree(ct.tree_as_of, ct.url_sequence)
@@ -20,14 +21,16 @@ def test__get_tree_url():
         assert "tree.json" in tree_url_parts.path
 
 
-def test__get_tree_url_bad_date():
+def test__get_tree_url_bad_date(patch_s3_for_tests):
+    # patch_s3_for_tests: Mocks S3 sequence data to prevent failures from missing historical versions
     # we cannot get reference trees prior to 2024-08-01
     ct = CladeTime()
     with pytest.raises(TreeNotAvailableError):
         Tree(datetime(2024, 7, 13, tzinfo=timezone.utc), ct.url_sequence)
 
 
-def test_tree_ncov_metadata():
+def test_tree_ncov_metadata(patch_s3_for_tests):
+    # patch_s3_for_tests: Mocks S3 sequence data to prevent failures from missing historical versions
     with freeze_time("2024-11-05 16:21:34"):
         # when tree_as_of <> sequence_as_of, the respective ncov_metadata
         # properties of CladeTime and Tree may differ
@@ -40,7 +43,8 @@ def test_tree_ncov_metadata():
 
 
 @pytest.mark.skipif(not docker_enabled, reason="Docker is not installed")
-def test__get_reference_tree():
+def test__get_reference_tree(patch_s3_for_tests):
+    # patch_s3_for_tests: Mocks S3 sequence data to prevent failures from missing historical versions
     with freeze_time("2024-08-13 16:21:34"):
         ct = CladeTime()
         tree = Tree(ct.tree_as_of, ct.url_sequence)

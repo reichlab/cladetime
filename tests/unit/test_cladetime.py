@@ -10,7 +10,8 @@ from cladetime.cladetime import CladeTime
 from cladetime.exceptions import CladeTimeDateWarning, CladeTimeInvalidURLError
 
 
-def test_cladetime_no_args():
+def test_cladetime_no_args(patch_s3_for_tests):
+    # patch_s3_for_tests: Mocks S3 sequence data to prevent failures from missing historical versions
     with freeze_time("2024-12-13 16:21:34", tz_offset=-4):
         ct = CladeTime()
         expected_date = datetime.now(timezone.utc)
@@ -90,7 +91,8 @@ def test_cladetime_no_args():
         ),
     ],
 )
-def test_cladetime_as_of_dates(sequence_as_of, tree_as_of, expected_sequence_as_of, expected_tree_as_of):
+def test_cladetime_as_of_dates(sequence_as_of, tree_as_of, expected_sequence_as_of, expected_tree_as_of, patch_s3_for_tests):
+    # patch_s3_for_tests: Mocks S3 sequence data to prevent failures from missing historical versions
     with freeze_time("2025-07-13 16:21:34"):
         ct = CladeTime(sequence_as_of=sequence_as_of, tree_as_of=tree_as_of)
 
@@ -99,12 +101,14 @@ def test_cladetime_as_of_dates(sequence_as_of, tree_as_of, expected_sequence_as_
 
 
 @pytest.mark.parametrize("bad_date", ["2020-07-13", "2022-12-32"])
-def test_cladetime_invalid_date(bad_date):
+def test_cladetime_invalid_date(bad_date, patch_s3_for_tests):
+    # patch_s3_for_tests: Mocks S3 sequence data to prevent failures from missing historical versions
     with pytest.warns(CladeTimeDateWarning):
         CladeTime(sequence_as_of=bad_date, tree_as_of=bad_date)
 
 
-def test_cladetime_future_date():
+def test_cladetime_future_date(patch_s3_for_tests):
+    # patch_s3_for_tests: Mocks S3 sequence data to prevent failures from missing historical versions
     with pytest.warns(CladeTimeDateWarning):
         CladeTime(sequence_as_of="2063-07-13")
     with pytest.warns(CladeTimeDateWarning):
@@ -158,23 +162,36 @@ def test_cladetime_urls(s3_setup, test_config, sequence_as_of, expected_metadata
 def test_cladetime_ncov_metadata(s3_setup, s3_object_keys, test_config):
     s3_client, bucket_name, s3_object_keys = s3_setup
     mock = MagicMock(return_value=test_config, name="CladeTime._get_config_mock")
+
+    # Mock the Hub fallback to raise ValueError (no archive available)
+    mock_fallback = MagicMock(side_effect=ValueError("No archive found"))
+
     with patch("cladetime.CladeTime._get_config", mock):
-        with freeze_time("2024-09-02 00:00:00"):
-            ct = CladeTime()
-            version_id = parse_qs(urlparse(ct.url_ncov_metadata).query)["versionId"][0]
-            # Generate a presigned URL for the specific version of the object
-            presigned_url = s3_client.generate_presigned_url(
-                "get_object",
-                Params={"Bucket": bucket_name, "Key": s3_object_keys["ncov_metadata"], "VersionId": version_id},
-                ExpiresIn=3600,
-            )
-            ct.url_ncov_metadata = presigned_url
+        with patch("cladetime.sequence._get_metadata_from_hub", mock_fallback):
+            with freeze_time("2024-09-02 00:00:00"):
+                ct = CladeTime()
+                version_id = parse_qs(urlparse(ct.url_ncov_metadata).query)["versionId"][0]
+                # Generate a presigned URL for the specific version of the object
+                presigned_url = s3_client.generate_presigned_url(
+                    "get_object",
+                    Params={"Bucket": bucket_name, "Key": s3_object_keys["ncov_metadata"], "VersionId": version_id},
+                    ExpiresIn=3600,
+                )
+                ct.url_ncov_metadata = presigned_url
 
     assert ct.ncov_metadata.get("nextclade_dataset_name_full") == "nextstrain/sars-cov-2/wuhan-hu-1/orfs"
     assert ct.ncov_metadata.get("nextclade_version_num") == "3.8.2"
 
-    ct.url_ncov_metadata = "https://httpstat.us/404"
-    assert ct.ncov_metadata == {}
+    # Test that when URL returns 404, ncov_metadata falls back and returns {}
+    # (mock fallback will raise ValueError, resulting in empty dict)
+    with patch("cladetime.sequence._get_metadata_from_hub", mock_fallback):
+        with patch("cladetime.sequence._get_session") as mock_session:
+            mock_response = MagicMock()
+            mock_response.ok = False
+            mock_response.status_code = 404
+            mock_session.return_value.get.return_value = mock_response
+            ct.url_ncov_metadata = "https://httpstat.us/404"
+            assert ct.ncov_metadata == {}
 
 
 @pytest.mark.skip("Need moto fixup to test S3 URLs")
