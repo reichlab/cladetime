@@ -13,8 +13,9 @@ class Config:
 
     # Nextstrain sequence data files in their current format are published back to 2023-05-01
     nextstrain_min_seq_date: datetime = datetime(2023, 5, 1).replace(tzinfo=timezone.utc)
-    # Nextstrain ncov pipeline metadata began publishing on 2024-08-01
-    nextstrain_min_ncov_metadata_date: datetime = datetime(2024, 8, 1, 1, 26, 29, tzinfo=timezone.utc)
+    # Nextstrain ncov pipeline metadata began publishing on 2024-08-01, but
+    # variant-nowcast-hub archives (used as fallback) only exist from 2024-10-09
+    nextstrain_min_ncov_metadata_date: datetime = datetime(2024, 10, 9, tzinfo=timezone.utc)
     nextstrain_ncov_bucket = "nextstrain-data"
     nextstrain_ncov_metadata_key = "files/ncov/open/metadata_version.json"
     nextstrain_genome_metadata_key = "files/ncov/open/metadata.tsv.zst"

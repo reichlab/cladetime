@@ -119,8 +119,8 @@ class TestHubFallback:
     @responses.activate
     def test_get_metadata_from_hub_no_archive_found(self):
         """Test fallback raises ValueError when no archive found within 30 days."""
-        # Use a date before Hub archives began (July 2, 2025 is the first round with archives in Sept 2024)
-        date = datetime(2024, 7, 1, tzinfo=timezone.utc)
+        # Use a date after hub archives began but where no archive exists in 30-day window
+        date = datetime(2024, 11, 15, tzinfo=timezone.utc)
 
         # Mock 404 for all dates in 30-day window
         for days_back in range(31):
@@ -134,6 +134,15 @@ class TestHubFallback:
 
         # Verify ValueError is raised with appropriate message
         with pytest.raises(ValueError, match="No variant-nowcast-hub archive found"):
+            _get_metadata_from_hub(date)
+
+    def test_get_metadata_from_hub_date_too_early(self):
+        """Test fallback raises ValueError when date is before hub archives begin (2024-10-09)."""
+        # Use a date before Hub archives began
+        date = datetime(2024, 7, 1, tzinfo=timezone.utc)
+
+        # Verify ValueError is raised with appropriate message
+        with pytest.raises(ValueError, match="Hub metadata archives only available from 2024-10-09"):
             _get_metadata_from_hub(date)
 
     @responses.activate
