@@ -56,7 +56,7 @@ def test_cladetime_assign_clades(tmp_path, demo_mode):
 
 
 @pytest.mark.skipif(not docker_enabled, reason="Docker is not installed")
-def test_cladetime_assign_clades_historical(tmp_path, demo_mode):
+def test_cladetime_assign_clades_historical(tmp_path, demo_mode, patch_s3_for_tests):
     """
     Test clade assignment with historical date using real hub metadata.
 
@@ -131,11 +131,11 @@ def test_cladetime_assign_clades_current_time(tmp_path, demo_mode):
     dataset_date = datetime.strptime(dataset_version_str[:10], "%Y-%m-%d").replace(tzinfo=timezone.utc)
     current_date = datetime.now(timezone.utc)
     days_old = (current_date - dataset_date).days
-    assert days_old < 60, f"Dataset version is {days_old} days old, may be stale"
+    assert days_old <= 60, f"Dataset version is {days_old} days old, may be stale"
 
 
 @pytest.mark.skipif(not docker_enabled, reason="Docker is not installed")
-def test_assign_old_tree(test_file_path, tmp_path, test_sequences):
+def test_assign_old_tree(test_file_path, tmp_path, test_sequences, patch_s3_for_tests):
     """Test that different tree_as_of dates can produce different clade assignments.
 
     This test uses dates within the hub archive range (>= 2024-10-09).

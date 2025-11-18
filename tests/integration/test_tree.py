@@ -11,7 +11,7 @@ from cladetime.util.reference import _docker_installed
 docker_enabled = _docker_installed()
 
 
-def test__get_tree_url():
+def test__get_tree_url(patch_s3_for_tests):
     # Use a date when hub metadata is available (no mocking needed)
     with freeze_time("2024-10-30 16:21:34"):
         ct = CladeTime()
@@ -29,7 +29,7 @@ def test__get_tree_url_bad_date():
         Tree(datetime(2024, 7, 13, tzinfo=timezone.utc), ct.url_sequence)
 
 
-def test_tree_ncov_metadata():
+def test_tree_ncov_metadata(patch_s3_for_tests):
     # Test that tree_as_of and sequence_as_of can have different metadata
     with freeze_time("2024-11-15 16:21:34"):
         # when tree_as_of <> sequence_as_of, the respective ncov_metadata
@@ -48,7 +48,7 @@ def test_tree_ncov_metadata():
 
 
 @pytest.mark.skipif(not docker_enabled, reason="Docker is not installed")
-def test__get_reference_tree():
+def test__get_reference_tree(patch_s3_for_tests):
     # Use a date when hub metadata is available (no mocking needed)
     with freeze_time("2024-10-30 16:21:34"):
         ct = CladeTime()
