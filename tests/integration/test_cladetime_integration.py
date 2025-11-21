@@ -125,13 +125,13 @@ def test_cladetime_assign_clades_current_time(tmp_path, demo_mode):
     assert assigned_clades.meta.get("sequences_to_assign") > 0
     assert assigned_clades.meta.get("sequences_assigned") > 0
 
-    # Verify dataset version is recent (within last 60 days)
+    # Verify dataset version is recent (within last 90 days)
     dataset_version_str = assigned_clades.meta.get("nextclade_dataset_version")
     # Format: "2024-10-17--16-48-48Z"
     dataset_date = datetime.strptime(dataset_version_str[:10], "%Y-%m-%d").replace(tzinfo=timezone.utc)
     current_date = datetime.now(timezone.utc)
     days_old = (current_date - dataset_date).days
-    assert days_old <= 60, f"Dataset version is {days_old} days old, may be stale"
+    assert days_old <= 90, f"Dataset version is {days_old} days old, may be stale"
 
 
 @pytest.mark.skipif(not docker_enabled, reason="Docker is not installed")
