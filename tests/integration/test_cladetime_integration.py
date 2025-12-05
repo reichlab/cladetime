@@ -55,41 +55,11 @@ def test_cladetime_assign_clades(tmp_path, demo_mode):
     assert assigned_clades.meta.get("assignment_as_of") is not None
 
 
-@pytest.mark.skipif(not docker_enabled, reason="Docker is not installed")
-def test_cladetime_assign_clades_historical(tmp_path, demo_mode, patch_s3_for_tests):
-    """
-    Test clade assignment with historical date using real hub metadata.
-
-    This test verifies that CladeTime can correctly retrieve and use historical
-    metadata from variant-nowcast-hub archives. We use 2024-10-30 because we
-    know the exact metadata that should be returned from the hub archive.
-    """
-    assignment_file = tmp_path / "assignments_historical.tsv"
-
-    with freeze_time("2024-10-30"):
-        ct = CladeTime()
-
-        metadata_filtered = sequence.filter_metadata(
-            ct.sequence_metadata,
-            collection_min_date="2024-10-01"
-        )
-
-        # Assign clades using historical reference tree
-        assigned_clades = ct.assign_clades(metadata_filtered, output_file=assignment_file)
-
-        # Verify metadata reflects 2024-10-30 state
-        assert assigned_clades.meta.get("sequence_as_of") == datetime(2024, 10, 30, tzinfo=timezone.utc)
-        assert assigned_clades.meta.get("tree_as_of") == datetime(2024, 10, 30, tzinfo=timezone.utc)
-
-        # Hard-code expected values from 2024-10-30 hub archive
-        # Source: https://github.com/reichlab/variant-nowcast-hub/blob/main/auxiliary-data/modeled-clades/2024-10-30.json
-        assert assigned_clades.meta.get("nextclade_dataset_version") == "2024-10-17--16-48-48Z"
-        assert assigned_clades.meta.get("nextclade_version_num") == "3.9.1"
-        assert assigned_clades.meta.get("assignment_as_of") == "2024-10-30 00:00"
-
-        # Verify assignments were actually made
-        assert assigned_clades.meta.get("sequences_to_assign") > 0
-        assert assigned_clades.meta.get("sequences_assigned") > 0
+# NOTE: test_cladetime_assign_clades_historical was removed because Nextstrain S3
+# no longer retains sequence data before 2025-09-29. The test used freeze_time("2024-10-30")
+# which is outside the data availability window. See GitHub issue #185 for details on
+# restoring historical test coverage and the limitations imposed by Nextstrain's
+# ~7-week data retention policy.
 
 
 @pytest.mark.skipif(not docker_enabled, reason="Docker is not installed")

@@ -7,12 +7,13 @@ import pytest
 from freezegun import freeze_time
 
 from cladetime.cladetime import CladeTime
-from cladetime.exceptions import CladeTimeDateWarning, CladeTimeInvalidURLError
+from cladetime.exceptions import CladeTimeDateWarning, CladeTimeDataUnavailableError, CladeTimeInvalidURLError
 
 
 def test_cladetime_no_args(patch_s3_for_tests):
     # patch_s3_for_tests: Mocks S3 sequence data to prevent failures from missing historical versions
-    with freeze_time("2024-12-13 16:21:34", tz_offset=-4):
+    # Use 2025 date (after 2025-09-29 cutoff)
+    with freeze_time("2025-12-13 16:21:34", tz_offset=-4):
         ct = CladeTime()
         expected_date = datetime.now(timezone.utc)
     assert ct.tree_as_of == expected_date
@@ -23,48 +24,11 @@ def test_cladetime_no_args(patch_s3_for_tests):
     "sequence_as_of, tree_as_of, expected_sequence_as_of, expected_tree_as_of",
     [
         (
-            # tree_as_of is prior to 2024-10-09, so should default to sequence_as_of
-            # (hub metadata archives only exist from 2024-10-09 onwards)
-            "2024-10-15",
-            "2024-01-01",
-            datetime(2024, 10, 15, 11, 59, 59, tzinfo=timezone.utc),
-            datetime(2024, 10, 15, 11, 59, 59, tzinfo=timezone.utc),
-        ),
-        (
-            # sequence_as_of set to current date, tree_as_of defaults to sequence_as_of
-            None,
-            "2023-12-21",
-            datetime(2025, 7, 13, 16, 21, 34, tzinfo=timezone.utc),
-            datetime(2025, 7, 13, 16, 21, 34, tzinfo=timezone.utc),
-        ),
-        (
-            # sequence_as_of set to current date, tree_as_of retains specified date
+            # sequence_as_of set to current date, tree_as_of uses valid date within hub range
             None,
             "2024-10-15",
             datetime(2025, 7, 13, 16, 21, 34, tzinfo=timezone.utc),
             datetime(2024, 10, 15, 11, 59, 59, tzinfo=timezone.utc),
-        ),
-        (
-            # tree_as_of set to sequence_as_of
-            datetime(2024, 10, 30, 18, 24, 59, 655398),
-            None,
-            datetime(2024, 10, 30, 18, 24, 59, tzinfo=timezone.utc),
-            datetime(2024, 10, 30, 18, 24, 59, tzinfo=timezone.utc),
-        ),
-        (
-            # cladetime ignores incoming timezone, converts everything to UTC
-            datetime(2024, 10, 22, 22, 22, 22, 222222, tzinfo=dateutil.tz.gettz("US/Eastern")),
-            datetime(2024, 10, 20, tzinfo=dateutil.tz.gettz("US/Eastern")),
-            datetime(2024, 10, 22, 22, 22, 22, tzinfo=timezone.utc),
-            datetime(2024, 10, 20, tzinfo=timezone.utc),
-        ),
-        (
-            # sequence_as_of is prior to 2024-10-09, so tree_as_of
-            # defaults to current date (no hub metadata available)
-            "2023-12-21",
-            None,
-            datetime(2023, 12, 21, 11, 59, 59, tzinfo=timezone.utc),
-            datetime(2025, 7, 13, 16, 21, 34, tzinfo=timezone.utc),
         ),
         (
             # future dates revert to current date
@@ -74,25 +38,18 @@ def test_cladetime_no_args(patch_s3_for_tests):
             datetime(2025, 7, 13, 16, 21, 34, tzinfo=timezone.utc),
         ),
         (
-            # sequence and tree both have future dates, both
-            # revert to current date
+            # sequence and tree both have future dates, both revert to current date
             "2063-12-21",
             "2074-07-13",
             datetime(2025, 7, 13, 16, 21, 34, tzinfo=timezone.utc),
-            datetime(2025, 7, 13, 16, 21, 34, tzinfo=timezone.utc),
-        ),
-        (
-            # tree_as_of is a bad date, but sequence_as_of is before
-            # 2024-10-09, so it should revert to current date (no hub metadata available)
-            "2023-07-13",
-            "2074-07",
-            datetime(2023, 7, 13, 11, 59, 59, tzinfo=timezone.utc),
             datetime(2025, 7, 13, 16, 21, 34, tzinfo=timezone.utc),
         ),
     ],
 )
 def test_cladetime_as_of_dates(sequence_as_of, tree_as_of, expected_sequence_as_of, expected_tree_as_of, patch_s3_for_tests):
     # patch_s3_for_tests: Mocks S3 sequence data to prevent failures from missing historical versions
+    # Note: Only testing valid/future dates now. Old dates (before 2025-09-29 for sequence,
+    # before 2024-10-09 for tree) are tested in test_cladetime_data_unavailable_* tests
     with freeze_time("2025-07-13 16:21:34"):
         ct = CladeTime(sequence_as_of=sequence_as_of, tree_as_of=tree_as_of)
 
@@ -100,9 +57,10 @@ def test_cladetime_as_of_dates(sequence_as_of, tree_as_of, expected_sequence_as_
     assert ct.tree_as_of == expected_tree_as_of
 
 
-@pytest.mark.parametrize("bad_date", ["2020-07-13", "2022-12-32"])
-def test_cladetime_invalid_date(bad_date, patch_s3_for_tests):
-    # patch_s3_for_tests: Mocks S3 sequence data to prevent failures from missing historical versions
+@pytest.mark.parametrize("bad_date", ["2022-12-32"])
+def test_cladetime_invalid_date_format(bad_date, patch_s3_for_tests):
+    # Test invalid date format (2022-12-32 is invalid - December doesn't have 32 days)
+    # This should trigger a warning and default to current date
     with pytest.warns(CladeTimeDateWarning):
         CladeTime(sequence_as_of=bad_date, tree_as_of=bad_date)
 
@@ -113,53 +71,35 @@ def test_cladetime_future_date(patch_s3_for_tests):
         CladeTime(sequence_as_of="2063-07-13")
     with pytest.warns(CladeTimeDateWarning):
         CladeTime(tree_as_of="2063-07-13")
-    with pytest.warns(CladeTimeDateWarning):
-        CladeTime(sequence_as_of="2023-12-31", tree_as_of="2063-07-13")
 
 
-@pytest.mark.parametrize(
-    "sequence_as_of, expected_metadata",
-    [
-        (
-            "2024-10-15",
-            {"version": "4"},
-        ),
-        (
-            None,
-            {"version": "4"},
-        ),
-        (
-            datetime(2023, 2, 5, 5, 55),
-            {"version": "2"},
-        ),
-        (
-            datetime(2023, 2, 5, 1, 22),
-            {"version": "1"},
-        ),
-    ],
-)
-def test_cladetime_urls(s3_setup, test_config, sequence_as_of, expected_metadata):
+def test_cladetime_urls(s3_setup, test_config, patch_s3_for_tests):
+    """Test CladeTime URL generation with mocked S3.
+
+    Note: This test uses test_config which mocks S3 setup but cannot bypass
+    the new date validation in CladeTime setters. Using None (current date)
+    which is always valid.
+    """
     s3_client, bucket_name, s3_object_keys = s3_setup
 
     mock = MagicMock(return_value=test_config, name="CladeTime._get_config_mock")
 
     with patch("cladetime.CladeTime._get_config", mock):
-        with freeze_time("2024-10-15 00:00:00"):
-            ct = CladeTime(sequence_as_of=sequence_as_of)
+        with freeze_time("2025-10-15 00:00:00"):
+            ct = CladeTime(sequence_as_of=None)  # Use current date which is always valid
             for url in [ct.url_sequence, ct.url_sequence_metadata]:
                 parsed_url = urlparse(url)
                 key = parsed_url.path.strip("/")
                 version_id = parse_qs(parsed_url.query)["versionId"][0]
                 object = s3_client.get_object(Bucket=bucket_name, Key=key, VersionId=version_id)
-                assert object.get("Metadata") == expected_metadata
+                # With mocked S3 and current date, should get version 4
+                assert object.get("Metadata") =={"version": "4"}
 
-            if ct.sequence_as_of < test_config.nextstrain_min_ncov_metadata_date:
-                assert ct.url_ncov_metadata is None
-            else:
-                assert ct.url_ncov_metadata is not None
+            # Current date is after ncov metadata availability
+            assert ct.url_ncov_metadata is not None
 
 
-def test_cladetime_ncov_metadata(s3_setup, s3_object_keys, test_config):
+def test_cladetime_ncov_metadata(s3_setup, s3_object_keys, test_config, patch_s3_for_tests):
     s3_client, bucket_name, s3_object_keys = s3_setup
     mock = MagicMock(return_value=test_config, name="CladeTime._get_config_mock")
 
@@ -168,7 +108,7 @@ def test_cladetime_ncov_metadata(s3_setup, s3_object_keys, test_config):
 
     with patch("cladetime.CladeTime._get_config", mock):
         with patch("cladetime.sequence._get_metadata_from_hub", mock_fallback):
-            with freeze_time("2024-10-15 00:00:00"):
+            with freeze_time("2025-10-15 00:00:00"):  # Use 2025 date after cutoff
                 ct = CladeTime()
                 version_id = parse_qs(urlparse(ct.url_ncov_metadata).query)["versionId"][0]
                 # Generate a presigned URL for the specific version of the object
@@ -210,3 +150,42 @@ def test_cladetime_sequence_metadata_no_url(test_config):
 
     with pytest.raises(CladeTimeInvalidURLError):
         ct.sequence_metadata
+
+
+def test_cladetime_sequence_as_of_before_data_availability():
+    """Test that CladeTime raises error for sequence_as_of before 2025-09-29."""
+    with pytest.raises(CladeTimeDataUnavailableError) as excinfo:
+        CladeTime(sequence_as_of="2024-10-30")
+
+    assert "Sequence data is not available before 2025-09-29" in str(excinfo.value)
+    assert "Nextstrain S3 only retains approximately 7 weeks" in str(excinfo.value)
+    assert "GitHub issue #185" in str(excinfo.value)
+
+
+def test_cladetime_tree_as_of_before_data_availability(patch_s3_for_tests):
+    """Test that CladeTime raises error for tree_as_of before 2024-10-09."""
+    # Use a valid sequence_as_of date (within S3 retention) but invalid tree_as_of
+    with pytest.raises(CladeTimeDataUnavailableError) as excinfo:
+        with freeze_time("2025-10-15"):
+            CladeTime(sequence_as_of="2025-10-15", tree_as_of="2024-08-01")
+
+    assert "Reference tree metadata is not available before 2024-10-09" in str(excinfo.value)
+    assert "variant-nowcast-hub archives" in str(excinfo.value)
+    assert "GitHub issue #185" in str(excinfo.value)
+
+
+@pytest.mark.parametrize(
+    "sequence_date, tree_date, expected_error",
+    [
+        # Test various dates before data availability
+        ("2023-05-01", None, "Sequence data is not available"),
+        ("2024-01-15", None, "Sequence data is not available"),
+        ("2025-09-28", None, "Sequence data is not available"),  # One day before cutoff
+    ],
+)
+def test_cladetime_data_unavailable_various_dates(sequence_date, tree_date, expected_error):
+    """Test that various dates before data availability raise appropriate errors."""
+    with pytest.raises(CladeTimeDataUnavailableError) as excinfo:
+        CladeTime(sequence_as_of=sequence_date, tree_as_of=tree_date)
+
+    assert expected_error in str(excinfo.value)

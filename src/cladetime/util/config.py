@@ -11,8 +11,9 @@ class Config:
     now = datetime.now()
     run_time = now.strftime("%Y%m%dT%H%M%S")
 
-    # Nextstrain sequence data files in their current format are published back to 2023-05-01
-    nextstrain_min_seq_date: datetime = datetime(2023, 5, 1).replace(tzinfo=timezone.utc)
+    # Nextstrain sequence data in S3 only available back to 2025-09-29 due to ~7-week retention policy
+    # implemented in October 2025. Historical data beyond this date has been purged.
+    nextstrain_min_seq_date: datetime = datetime(2025, 9, 29, tzinfo=timezone.utc)
     # Nextstrain ncov pipeline metadata began publishing on 2024-08-01, but
     # variant-nowcast-hub archives (used as fallback) only exist from 2024-10-09
     nextstrain_min_ncov_metadata_date: datetime = datetime(2024, 10, 9, tzinfo=timezone.utc)

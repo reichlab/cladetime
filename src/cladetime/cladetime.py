@@ -10,7 +10,12 @@ import structlog
 
 from cladetime import Tree, sequence
 from cladetime.clade import Clade
-from cladetime.exceptions import CladeTimeDateWarning, CladeTimeInvalidURLError, CladeTimeSequenceWarning
+from cladetime.exceptions import (
+    CladeTimeDateWarning,
+    CladeTimeDataUnavailableError,
+    CladeTimeInvalidURLError,
+    CladeTimeSequenceWarning,
+)
 from cladetime.util.config import Config
 from cladetime.util.reference import _get_clade_assignments, _get_date, _get_nextclade_dataset, _get_s3_object_url
 
@@ -25,6 +30,20 @@ class CladeTime:
     as well as the reference tree used for clade assignment. CladeTime
     interacts with GenBank-based data provided by the Nextstrain project.
 
+    Important
+    ---------
+    Historical data availability is constrained by Nextstrain's infrastructure:
+
+    - sequence_as_of: Must be >= 2025-09-29 (Nextstrain S3 ~7-week retention)
+    - tree_as_of: Must be >= 2024-10-09 (variant-nowcast-hub archive availability)
+
+    These constraints reflect Nextstrain's October 2025 implementation of a
+    ~7-week retention policy for S3 versioned objects. Dates outside these
+    windows will raise CladeTimeDataUnavailableError. See GitHub issue #185
+    for details and potential workarounds.
+
+    Note: These limitations may change as Nextstrain's infrastructure evolves.
+
     Parameters
     ----------
     sequence_as_of : datetime.datetime | str | None
@@ -34,15 +53,14 @@ class CladeTime:
         string in YYYY-MM-DD format, both of which will be treated as
         UTC. The default value is the current UTC time. Dates passed
         as YYYY-MM-DD strings will be set to 11:59:59 PM UTC.
+        Must be >= 2025-09-29.
     tree_as_of : datetime.datetime | str | None
         Sets the version of the Nextstrain reference tree that will be
         used by CladeTime. Can be a datetime object or a string in
         YYYY-MM-DD format, both of which will be treated as UTC.
-        The default value is :any:`sequence_as_of<sequence_as_of>`,
-        unless sequence_as_of is before reference tree availability
-        (2024-08-01), in which case tree_as_of will default to current
-        time UTC. Dates passed as YYYY-MM-DD strings will be
-        set to 11:59:59 PM UTC.
+        The default value is :any:`sequence_as_of<sequence_as_of>`.
+        Dates passed as YYYY-MM-DD strings will be set to 11:59:59 PM UTC.
+        Must be >= 2024-10-09.
 
     Attributes
     ----------
@@ -115,17 +133,22 @@ class CladeTime:
             sequence_as_of = utc_now
             date_warning = True
 
+        # Check if date is before data availability window - raise error
         if sequence_as_of < min_sequence_date:
-            sequence_as_of = utc_now
-            date_warning = True
+            raise CladeTimeDataUnavailableError(
+                f"\nSequence data is not available before {min_sequence_date.strftime('%Y-%m-%d')}. "
+                f"Nextstrain S3 only retains approximately 7 weeks of historical versions. "
+                f"Requested date: {sequence_as_of.strftime('%Y-%m-%d')}. "
+                f"\nNote: This limitation is due to Nextstrain's data retention policy, "
+                f"which may change over time. See GitHub issue #185 for more details."
+            )
         elif sequence_as_of > utc_now:
             sequence_as_of = utc_now
             date_warning = True
 
         if date_warning:
             msg = (
-                "\nSequence as_of cannot in the future and cannot be earlier than "
-                f"{min_sequence_date.strftime('%Y-%m-%d')}, defaulting to "
+                "\nSequence as_of cannot be in the future, defaulting to "
                 f"current date: {sequence_as_of.strftime('%Y-%m-%d')}"
             )
             warnings.warn(msg, category=CladeTimeDateWarning)
@@ -156,22 +179,24 @@ class CladeTime:
                 tree_as_of = self.sequence_as_of
 
         utc_now = datetime.now(timezone.utc)
-        if tree_as_of < min_tree_date and self.sequence_as_of < min_tree_date:
-            default_field = "current date"
-            date_warning = True
-            tree_as_of = utc_now
-        elif tree_as_of < min_tree_date:
-            default_field = "sequence_as_of"
-            date_warning = True
-            tree_as_of = self.sequence_as_of
+
+        # Check if date is before reference tree metadata availability - raise error
+        if tree_as_of < min_tree_date:
+            raise CladeTimeDataUnavailableError(
+                f"\nReference tree metadata is not available before {min_tree_date.strftime('%Y-%m-%d')}. "
+                f"Historical metadata is provided by variant-nowcast-hub archives starting from this date. "
+                f"Requested date: {tree_as_of.strftime('%Y-%m-%d')}. "
+                f"\nNote: This limitation is due to hub archive availability, which may expand over time. "
+                f"See GitHub issue #185 for more details."
+            )
         elif tree_as_of > utc_now:
             default_field = "current date"
             date_warning = True
             tree_as_of = utc_now
+
         if date_warning:
             msg = (
-                "\nTree as_of cannot in the future and cannot be earlier than "
-                f"{min_tree_date.strftime('%Y-%m-%d')}, defaulting to "
+                "\nTree as_of cannot be in the future, defaulting to "
                 f"{default_field}: {tree_as_of.strftime('%Y-%m-%d')}"
             )
             warnings.warn(msg, category=CladeTimeDateWarning)

@@ -99,8 +99,32 @@ in use when sequence metadata file was created.
 ```python
 >>> from cladetime import CladeTime
 
-# Create a CladeTime object for any date after May, 2023
->>> ct = CladeTime(sequence_as_of="2024-10-15")
+# Create a CladeTime object for recent historical data
+>>> ct = CladeTime(sequence_as_of="2025-10-15")
+```
+
+### Data Availability Constraints
+
+> [!IMPORTANT]
+> **Historical data availability is limited** due to Nextstrain's data retention policies:
+>
+> - **Sequence data**: Available from **2025-09-29** onwards (approximately 7 weeks of history)
+> - **Reference tree metadata**: Available from **2024-10-09** onwards (via variant-nowcast-hub archives)
+>
+> Nextstrain implemented a ~7-week retention policy for S3 versioned objects in October 2025. Historical
+> versions older than this window have been permanently deleted and cannot be accessed.
+>
+> **Note**: These constraints may change as Nextstrain's infrastructure evolves. The current limitations
+> reflect policies as of December 2025. See [GitHub issue #185](https://github.com/reichlab/cladetime/issues/185)
+> for technical details and discussion of potential workarounds.
+
+Attempting to use dates outside these availability windows will raise a `CladeTimeDataUnavailableError`:
+
+```python
+>>> from cladetime import CladeTime
+>>> ct = CladeTime(sequence_as_of="2024-10-30")  # Before 2025-09-29
+CladeTimeDataUnavailableError: Sequence data is not available before 2025-09-29.
+Nextstrain S3 only retains approximately 7 weeks of historical versions.
 ```
 
 ## Custom clade assignments
