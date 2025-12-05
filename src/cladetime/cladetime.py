@@ -11,8 +11,8 @@ import structlog
 from cladetime import Tree, sequence
 from cladetime.clade import Clade
 from cladetime.exceptions import (
-    CladeTimeDateWarning,
     CladeTimeDataUnavailableError,
+    CladeTimeDateWarning,
     CladeTimeInvalidURLError,
     CladeTimeSequenceWarning,
 )

@@ -2,12 +2,11 @@ from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
-import dateutil.tz
 import pytest
 from freezegun import freeze_time
 
 from cladetime.cladetime import CladeTime
-from cladetime.exceptions import CladeTimeDateWarning, CladeTimeDataUnavailableError, CladeTimeInvalidURLError
+from cladetime.exceptions import CladeTimeDataUnavailableError, CladeTimeDateWarning, CladeTimeInvalidURLError
 
 
 def test_cladetime_no_args(patch_s3_for_tests):
