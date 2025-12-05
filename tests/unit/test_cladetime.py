@@ -1,6 +1,5 @@
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
-from urllib.parse import parse_qs, urlparse
 
 import pytest
 from freezegun import freeze_time
