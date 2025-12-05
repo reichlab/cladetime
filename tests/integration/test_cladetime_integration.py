@@ -124,8 +124,8 @@ def test_assign_old_tree(test_file_path, tmp_path, test_sequences, patch_s3_for_
     }
     metadata_filtered = pl.LazyFrame(test_filtered_metadata)
 
-    # Use dates within hub archive range
-    with freeze_time("2024-11-15"):
+    # Use dates within data availability window (>= 2025-09-29 for sequence data)
+    with freeze_time("2025-11-15"):
         current_file = tmp_path / "current_assignments.tsv"
         ct_current_tree = CladeTime()
         with patch("cladetime.sequence.filter", fasta_mock):
@@ -143,13 +143,13 @@ def test_assign_old_tree(test_file_path, tmp_path, test_sequences, patch_s3_for_
     assert_frame_equal(current_assigned_clades.select("strain"), old_assigned_clade_detail.select("strain"))
 
     # Check metadata reflects the different dates
-    assert old_assigned_clades.meta.get("sequence_as_of") == datetime(2024, 11, 15, tzinfo=timezone.utc)
+    assert old_assigned_clades.meta.get("sequence_as_of") == datetime(2025, 11, 15, tzinfo=timezone.utc)
     assert old_assigned_clades.meta.get("tree_as_of") == datetime(2024, 10, 16, 11, 59, 59, tzinfo=timezone.utc)
 
     # Verify tree_as_of uses hub metadata
     assert old_assigned_clades.meta.get("nextclade_dataset_version") is not None
     assert old_assigned_clades.meta.get("nextclade_version_num") is not None
-    assert old_assigned_clades.meta.get("assignment_as_of") == "2024-11-15 00:00"
+    assert old_assigned_clades.meta.get("assignment_as_of") == "2025-11-15 00:00"
 
 @pytest.mark.skipif(not docker_enabled, reason="Docker is not installed")
 @pytest.mark.parametrize("sequence_file", ["test_sequences.fasta.xz", "test_sequences.fasta.zst"])
