@@ -125,7 +125,7 @@ def test_cladetime_sequence_as_of_before_data_availability():
         CladeTime(sequence_as_of="2024-10-30")
 
     assert "Sequence data is not available before 2025-09-29" in str(excinfo.value)
-    assert "Nextstrain S3 only retains approximately 7 weeks" in str(excinfo.value)
+    assert "Nextstrain S3 only retains up to 90 days" in str(excinfo.value)
     assert "GitHub issue #185" in str(excinfo.value)
 
 
