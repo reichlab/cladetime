@@ -7,7 +7,7 @@ All notable changes to Cladetime are documented here. Cladetime uses
 
 ### Changed
 
-- **BREAKING**: Updated minimum `sequence_as_of` date from 2023-05-01 to **2025-09-29** due to Nextstrain's ~7-week S3 retention policy
+- **BREAKING**: Updated minimum `sequence_as_of` date from 2023-05-01 to **2025-09-29** due to Nextstrain's 90 day S3 retention policy
 - **BREAKING**: CladeTime now raises `CladeTimeDataUnavailableError` for dates outside data availability windows instead of silently defaulting to current date
 - **BREAKING**: Minimum `tree_as_of` date remains 2024-10-09 (via variant-nowcast-hub archives), but now enforced with error instead of warning
 - Updated configuration constant `nextstrain_min_seq_date` to reflect new data availability constraints
@@ -26,7 +26,7 @@ All notable changes to Cladetime are documented here. Cladetime uses
 
 ### Note
 
-These changes reflect Nextstrain's October 2025 implementation of a ~7-week retention policy for S3 versioned objects. Historical data beyond this window has been permanently deleted. **This limitation may change as Nextstrain's infrastructure evolves.** Users requiring access to historical data should consider archiving datasets locally or using alternative data sources.
+These changes reflect Nextstrain's October 2025 implementation of a 90 day S3 retention policy for S3 versioned objects. Historical data beyond this window has been permanently deleted. **This limitation may change as Nextstrain's infrastructure evolves.** Users requiring access to historical data should consider archiving datasets locally or using alternative data sources.
 
 ## 2.0.0
 
