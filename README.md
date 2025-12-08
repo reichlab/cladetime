@@ -108,7 +108,7 @@ in use when sequence metadata file was created.
 > [!IMPORTANT]
 > **Historical data availability is limited** due to Nextstrain's data retention policies:
 >
-> - **Sequence data**: Available from **2025-09-29** onwards (approximately 7 weeks of history)
+> - **Sequence data**: Available from **2025-09-29** onwards (at least 90 days of history)
 > - **Reference tree metadata**: Available from **2024-10-09** onwards (via variant-nowcast-hub archives)
 >
 > Nextstrain implemented a ~7-week retention policy for S3 versioned objects in October 2025. Historical
