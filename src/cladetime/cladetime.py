@@ -34,11 +34,11 @@ class CladeTime:
     ---------
     Historical data availability is constrained by Nextstrain's infrastructure:
 
-    - sequence_as_of: Must be >= 2025-09-29 (Nextstrain S3 ~7-week retention)
+    - sequence_as_of: Must be >= 2025-09-29 (Nextstrain S3 90 day retention)
     - tree_as_of: Must be >= 2024-10-09 (variant-nowcast-hub archive availability)
 
     These constraints reflect Nextstrain's October 2025 implementation of a
-    ~7-week retention policy for S3 versioned objects. Dates outside these
+    90 day retention policy for S3 versioned objects. Dates outside these
     windows will raise CladeTimeDataUnavailableError. See GitHub issue #185
     for details and potential workarounds.
 
@@ -137,7 +137,7 @@ class CladeTime:
         if sequence_as_of < min_sequence_date:
             raise CladeTimeDataUnavailableError(
                 f"\nSequence data is not available before {min_sequence_date.strftime('%Y-%m-%d')}. "
-                f"Nextstrain S3 only retains approximately 7 weeks of historical versions. "
+                f"Nextstrain S3 only retains up to 90 days of historical versions. "
                 f"Requested date: {sequence_as_of.strftime('%Y-%m-%d')}. "
                 f"\nNote: This limitation is due to Nextstrain's data retention policy, "
                 f"which may change over time. See GitHub issue #185 for more details."
