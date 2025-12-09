@@ -5,12 +5,18 @@ All notable changes to Cladetime are documented here. Cladetime uses
 
 ## [unreleased]
 
+## 2.1.0
+
 ### Changed
 
-- **BREAKING**: Updated minimum `sequence_as_of` date from 2023-05-01 to **2025-09-29** due to Nextstrain's 90 day S3 retention policy
+- **BREAKING**: Updated minimum `sequence_as_of` date from 2023-05-01 to **2025-09-29** due to Nextstrain's 90-day S3 retention policy
 - **BREAKING**: CladeTime now raises `CladeTimeDataUnavailableError` for dates outside data availability windows instead of silently defaulting to current date
 - **BREAKING**: Minimum `tree_as_of` date remains 2024-10-09 (via variant-nowcast-hub archives), but now enforced with error instead of warning
 - Updated configuration constant `nextstrain_min_seq_date` to reflect new data availability constraints
+- Updated retention policy language from "approximately 7 weeks" to "90 days" for clarity and accuracy
+- Simplified test infrastructure by removing complex S3 mocking in favor of testing actual behavior
+- Updated integration tests to use dates within data availability window (>= 2025-09-29)
+- Increased dataset staleness threshold from 60 to 90 days in integration tests
 
 ### Added
 
@@ -22,11 +28,19 @@ All notable changes to Cladetime are documented here. Cladetime uses
 ### Removed
 
 - Removed `test_cladetime_assign_clades_historical` test that relied on unavailable historical data (2024-10-30)
+- Removed complex mocking from `test_cladetime_urls` and `test_cladetime_ncov_metadata` unit tests
 - See [GitHub issue #185](https://github.com/reichlab/cladetime/issues/185) for discussion of restoring historical test coverage
+
+### Fixed
+
+- Test assertions now match updated error message language (90 days)
+- Removed unused imports from test files
 
 ### Note
 
-These changes reflect Nextstrain's October 2025 implementation of a 90 day S3 retention policy for S3 versioned objects. Historical data beyond this window has been permanently deleted. **This limitation may change as Nextstrain's infrastructure evolves.** Users requiring access to historical data should consider archiving datasets locally or using alternative data sources.
+These changes reflect Nextstrain's October 2025 implementation of a 90-day S3 retention policy for versioned objects. Historical data beyond this window has been permanently deleted. **This limitation may change as Nextstrain's infrastructure evolves.** Users requiring access to historical data should consider archiving datasets locally or using alternative data sources.
+
+The breaking changes in this release are necessary due to external infrastructure changes beyond CladeTime's control. The date validation ensures users receive clear error messages when requesting data that is no longer available, rather than silent failures or incorrect defaults.
 
 ## 2.0.0
 
