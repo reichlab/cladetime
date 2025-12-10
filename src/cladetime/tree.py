@@ -49,9 +49,19 @@ class Tree:
         # Nextstrain began publishing ncov pipeline metadata starting on 2024-08-01
         min_tree_date = self._config.nextstrain_min_ncov_metadata_date
         if self.as_of >= min_tree_date:
-            self.url_ncov_metadata = _get_s3_object_url(
-                self._config.nextstrain_ncov_bucket, self._config.nextstrain_ncov_metadata_key, self.as_of
-            )[1]
+            try:
+                self.url_ncov_metadata = _get_s3_object_url(
+                    self._config.nextstrain_ncov_bucket, self._config.nextstrain_ncov_metadata_key, self.as_of
+                )[1]
+            except ValueError as e:
+                # S3 doesn't have historical metadata - will use Hub fallback when fetching
+                logger.warn(
+                    "Nextstrain S3 metadata not available, will use Hub fallback",
+                    date=self.as_of.strftime("%Y-%m-%d"),
+                    error=str(e),
+                )
+                # Set to empty string so fallback will be triggered
+                self.url_ncov_metadata = ""
         else:
             raise TreeNotAvailableError(f"References tree not available for dates prior to {min_tree_date}")
         self._ncov_metadata = self.ncov_metadata
@@ -70,8 +80,10 @@ class Tree:
         dict : Metadata from the Nextstrain pipeline run that corresponds
         to as_of.
         """
-        if self.url_ncov_metadata:
-            metadata = sequence._get_ncov_metadata(self.url_ncov_metadata)
+        if self.url_ncov_metadata is not None:
+            # Pass as_of date for Hub fallback support
+            # Note: empty string "" is valid here - it triggers fallback in _get_ncov_metadata
+            metadata = sequence._get_ncov_metadata(self.url_ncov_metadata, as_of_date=self.as_of)
             return metadata
         else:
             metadata = {}
@@ -144,7 +156,8 @@ class Tree:
             logger.error("Reference tree not available", tree_as_of=self.clade_time.tree_as_of)
             raise TreeNotAvailableError(f"Reference tree not available for {self.clade_time.tree_as_of}")
 
-        ncov_metadata = _get_ncov_metadata(url_ncov_metadata)
+        # Pass as_of date for Hub fallback support
+        ncov_metadata = _get_ncov_metadata(url_ncov_metadata, as_of_date=self.as_of)
         nextclade_dataset_name = ncov_metadata.get("nextclade_dataset_name_full")
         nextclade_dataset_version = ncov_metadata.get("nextclade_dataset_version")
 
@@ -177,7 +190,7 @@ class Tree:
         nextclade_dataset_name = self.ncov_metadata.get("nextclade_dataset_name", "")
         nextclade_dataset_version = self.ncov_metadata.get("nextclade_dataset_version", "")
         if not all([nextclade_version_num, nextclade_dataset_name, nextclade_dataset_version]):
-            logger.error("Incomplete ncov metadata", tree_as_of=self._clade_time.tree_as_of)
+            logger.error("Incomplete ncov metadata", tree_as_of=self.as_of)
             raise TreeNotAvailableError(f"Incomplete ncov metadata {self.ncov_metadata}")
 
         with tempfile.TemporaryDirectory() as tmpdir:

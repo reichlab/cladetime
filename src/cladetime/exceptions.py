@@ -9,6 +9,10 @@ class CladeTimeInvalidURLError(Error):
     """Raised when CladeTime encounters an invalid URL."""
 
 
+class CladeTimeDataUnavailableError(Error):
+    """Raised when requested date is outside Nextstrain S3 data availability window."""
+
+
 class CladeTimeDateWarning(Warning):
     """Raised when CladeTime as_of date is in the future."""
 

@@ -1,12 +1,13 @@
 """Functions for retrieving and parsing SARS-CoV-2 phylogenic tree data."""
 
 import subprocess
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Tuple
 
 import boto3
 import docker
+import requests
 import structlog
 from botocore import UNSIGNED
 from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError
@@ -58,6 +59,76 @@ def _docker_installed():
         docker_enabled = False
 
     return docker_enabled
+
+
+def _get_metadata_from_hub(metadata_date: datetime) -> dict:
+    """
+    Retrieve ncov metadata from variant-nowcast-hub archives when
+    Nextstrain S3 does not have historical metadata_version.json files.
+
+    The variant-nowcast-hub maintains weekly archives of modeled clades
+    with embedded ncov pipeline metadata dating back to October 9, 2024.
+
+    Parameters
+    ----------
+    metadata_date : datetime
+        The date to retrieve metadata for (UTC).
+        Must be >= 2024-10-09 when hub archives begin.
+
+    Returns
+    -------
+    dict
+        ncov metadata dictionary with keys:
+        - nextclade_dataset_name_full
+        - nextclade_dataset_version
+        - nextclade_version
+        - nextclade_version_num
+
+    Raises
+    ------
+    ValueError
+        If metadata_date is before 2024-10-09, or if no archive is found
+        within 30 days before the requested date
+    """
+    # Hub archives only exist from 2024-10-09 onwards
+    HUB_MIN_DATE = datetime(2024, 10, 9, tzinfo=timezone.utc)
+    if metadata_date < HUB_MIN_DATE:
+        raise ValueError(
+            f"Hub metadata archives only available from {HUB_MIN_DATE.strftime('%Y-%m-%d')} onwards. "
+            f"Requested date {metadata_date.strftime('%Y-%m-%d')} is too early."
+        )
+
+    date_str = metadata_date.strftime("%Y-%m-%d")
+    base_url = "https://raw.githubusercontent.com/reichlab/variant-nowcast-hub/main/auxiliary-data/modeled-clades"
+
+    # Try exact date match first
+    url = f"{base_url}/{date_str}.json"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        data = response.json()
+        logger.info("Retrieved metadata from Hub archive (exact match)", date=date_str)
+        return data["meta"]["ncov"]
+
+    # If exact match not found, search for nearest prior archive (up to 30 days back)
+    logger.info("Exact archive not found, searching for nearest prior archive", requested_date=date_str)
+
+    for days_back in range(1, 31):
+        prior_date = metadata_date - timedelta(days=days_back)
+        prior_date_str = prior_date.strftime("%Y-%m-%d")
+        url = f"{base_url}/{prior_date_str}.json"
+        response = requests.get(url)
+
+        if response.status_code == 200:
+            data = response.json()
+            logger.info("Using nearest prior archive from Hub", requested_date=date_str, archive_date=prior_date_str)
+            return data["meta"]["ncov"]
+
+    # If we get here, no archive found within 30 days
+    raise ValueError(
+        f"No variant-nowcast-hub archive found within 30 days before {date_str}. "
+        f"Hub archives begin September 2024."
+    )
 
 
 def _get_s3_object_url(bucket_name: str, object_key: str, date: datetime) -> Tuple[str, str]:

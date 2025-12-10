@@ -99,8 +99,32 @@ in use when sequence metadata file was created.
 ```python
 >>> from cladetime import CladeTime
 
-# Create a CladeTime object for any date after May, 2023
->>> ct = CladeTime(sequence_as_of="2024-10-15")
+# Create a CladeTime object for recent historical data
+>>> ct = CladeTime(sequence_as_of="2025-10-15")
+```
+
+### Data Availability Constraints
+
+> [!IMPORTANT]
+> **Historical data availability is limited** due to Nextstrain's data retention policies:
+>
+> - **Sequence data**: Available from **2025-09-29** onwards (at least 90 days of history)
+> - **Reference tree metadata**: Available from **2024-10-09** onwards (via variant-nowcast-hub archives)
+>
+> Nextstrain implemented a ~7-week retention policy for S3 versioned objects in October 2025. Historical
+> versions older than this window have been permanently deleted and cannot be accessed.
+>
+> **Note**: These constraints may change as Nextstrain's infrastructure evolves. The current limitations
+> reflect policies as of December 2025. See [GitHub issue #185](https://github.com/reichlab/cladetime/issues/185)
+> for technical details and discussion of potential workarounds.
+
+Attempting to use dates outside these availability windows will raise a `CladeTimeDataUnavailableError`:
+
+```python
+>>> from cladetime import CladeTime
+>>> ct = CladeTime(sequence_as_of="2024-10-30")  # Before 2025-09-29
+CladeTimeDataUnavailableError: Sequence data is not available before 2025-09-29.
+Nextstrain S3 only retains approximately 7 weeks of historical versions.
 ```
 
 ## Custom clade assignments
@@ -198,6 +222,41 @@ Access to historical copies of `ncov_metadata` is what allows Cladetime to
 access past reference trees for custom clade assignments. Cladetime retrieves
 a separate set of `ncov_metadata` for the `tree_as_of` date and uses it to pass
 the correct reference tree to the `assign_clades` method.
+
+## Historical Data Access
+
+Cladetime is designed to work with historical data dating back to May 2023. However,
+in October 2025, Nextstrain began removing historical `metadata_version.json` files
+from their S3 storage, which would prevent access to historical reference tree metadata.
+
+To address this, **Cladetime v2.0.0 introduced automatic fallback** to the
+[variant-nowcast-hub](https://github.com/reichlab/variant-nowcast-hub) archives
+when Nextstrain S3 data is unavailable. This fallback is completely transparent to users:
+
+1. Cladetime first attempts to retrieve metadata from Nextstrain S3 (fast path)
+2. If the historical metadata is not found, Cladetime automatically searches the
+   variant-nowcast-hub's `auxiliary-data/modeled-clades/` directory for archived metadata
+3. The fallback searches for an exact date match first, then searches backward up to 30 days
+   for the nearest prior archive
+4. If metadata is found via fallback, a warning is logged but execution continues normally
+
+**Archive availability**: The variant-nowcast-hub has maintained weekly metadata archives
+since September 2024. For dates prior to September 2024, Nextstrain S3 may still be the
+only source.
+
+**No action required**: The fallback mechanism works automatically. Users don't need to
+modify any code or provide additional parameters. If both sources fail, Cladetime will
+raise an appropriate error with instructions.
+
+```python
+>>> from cladetime import CladeTime
+
+# This works even if Nextstrain S3 lacks historical metadata for 2024-10-09
+# Cladetime will automatically fall back to variant-nowcast-hub archives
+>>> ct = CladeTime(tree_as_of="2024-10-09")
+>>> ct.ncov_metadata.get('nextclade_dataset_version')
+'2024-09-25--21-50-30Z'
+```
 
 ## Acknowledgements
 
